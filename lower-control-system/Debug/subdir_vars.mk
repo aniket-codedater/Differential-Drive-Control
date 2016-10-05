@@ -7,26 +7,32 @@ CMD_SRCS += \
 ../tm4c123gh6pm.cmd 
 
 C_SRCS += \
+../HWtest.c \
 ../main.c \
 ../tm4c123gh6pm_startup_ccs.c 
 
 OBJS += \
+./HWtest.obj \
 ./main.obj \
 ./tm4c123gh6pm_startup_ccs.obj 
 
 C_DEPS += \
+./HWtest.d \
 ./main.d \
 ./tm4c123gh6pm_startup_ccs.d 
 
 C_DEPS__QUOTED += \
+"HWtest.d" \
 "main.d" \
 "tm4c123gh6pm_startup_ccs.d" 
 
 OBJS__QUOTED += \
+"HWtest.obj" \
 "main.obj" \
 "tm4c123gh6pm_startup_ccs.obj" 
 
 C_SRCS__QUOTED += \
+"../HWtest.c" \
 "../main.c" \
 "../tm4c123gh6pm_startup_ccs.c" 
 

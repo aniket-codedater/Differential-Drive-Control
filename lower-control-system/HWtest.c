@@ -13,6 +13,8 @@
  *      Once the directions and polarities and connections are checked, proceed with the tuning using the actual main.c
  */
 
+#include "HWtest.h"
+
 /*
  * Testing motor directions and PWM pins
  * Use the following functions to check for directions and PWM of motors.

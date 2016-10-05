@@ -10,6 +10,7 @@ GEN_OPTS__FLAG :=
 GEN_CMDS__FLAG := 
 
 ORDERED_OBJS += \
+"./HWtest.obj" \
 "./main.obj" \
 "./tm4c123gh6pm_startup_ccs.obj" \
 "./userLib/common.obj" \
@@ -147,7 +148,7 @@ all: lower-control-system.out
 lower-control-system.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: ARM Linker'
-	"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 -me -g --gcc --define=ccs="ccs" --define=PART_TM4C123GH6PM --diag_warning=225 --diag_wrap=off --display_error_number --abi=eabi -z -m"lower-control-system.map" --stack_size=512 --heap_size=0 -i"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/lib" -i"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include" --reread_libs --warn_sections --diag_wrap=off --display_error_number --xml_link_info="lower-control-system_linkInfo.xml" --rom_model -o "lower-control-system.out" $(ORDERED_OBJS)
+	"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 -me -g --gcc --define=ccs="ccs" --define=PART_TM4C123GH6PM --diag_wrap=off --diag_warning=225 --display_error_number --abi=eabi -z -m"lower-control-system.map" --stack_size=512 --heap_size=0 -i"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/lib" -i"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include" --reread_libs --display_error_number --warn_sections --diag_wrap=off --xml_link_info="lower-control-system_linkInfo.xml" --rom_model -o "lower-control-system.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -160,8 +161,8 @@ lower-control-system.hex: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(EXE_OUTPUTS__QUOTED)$(BIN_OUTPUTS__QUOTED)
-	-$(RM) "main.d" "tm4c123gh6pm_startup_ccs.d" "userLib\common.d" "userLib\init.d" "userLib\movingArray.d" "userLib\pidController.d" 
-	-$(RM) "main.obj" "tm4c123gh6pm_startup_ccs.obj" "userLib\common.obj" "userLib\init.obj" "userLib\movingArray.obj" "userLib\pidController.obj" 
+	-$(RM) "HWtest.d" "main.d" "tm4c123gh6pm_startup_ccs.d" "userLib\common.d" "userLib\init.d" "userLib\movingArray.d" "userLib\pidController.d" 
+	-$(RM) "HWtest.obj" "main.obj" "tm4c123gh6pm_startup_ccs.obj" "userLib\common.obj" "userLib\init.obj" "userLib\movingArray.obj" "userLib\pidController.obj" 
 	-@echo 'Finished clean'
 	-@echo ' '
 
