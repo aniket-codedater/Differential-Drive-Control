@@ -1,0 +1,35 @@
+/*
+ * HWtest.c
+ *
+ *  Created on: Oct 5, 2016
+ *      Author: Aniket
+ *      This source file contains functions to use for testing the hardware connections of the differential drive on Tiva boards.
+ *      Run the functions one by one keeping the main with nothing except this function. (not while loop) You can comment out the codes from main.
+ *      	"SysCtlClockSet(SYSCTL_SYSDIV_5|SYSCTL_USE_PLL|SYSCTL_XTAL_16MHZ|SYSCTL_OSC_MAIN);
+			uart0Init();" DO NOT COMMENT THESE STARTING TWO LINES OF MAIN
+ *
+ *      Change the pins as per required or change the macro configurations from "init.h" file in "userLib" folder.
+ *      Once the directions and polarities and connections are checked, proceed with the tuning using the actual main.c
+ */
+#include "userLib/common.h"
+#include "userLib/init.h"
+#include "userLib/pidController.h"
+#include "userLib/movingArray.h"
+#define maxPWM SysCtlClockGet()/(PWMfrequency*64);
+
+void testMotor(int motor,int PWM) {
+	motorDirInit();
+	pwmInit();
+	setPWM(PWM,motor);
+}
+
+void testBothMotor(int PWM_a,int PWM_b) {
+	motorDirInit();
+	pwmInit();
+	setPWM(PWM_a,A);
+	setPWM(PWM_b,B);
+}
+
+
+
+

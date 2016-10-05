@@ -1,0 +1,21 @@
+/*
+ * HWtest.h
+ *
+ *  Created on: Oct 5, 2016
+ *      Author: Aniket
+ */
+
+#ifndef HWTEST_H_
+#define HWTEST_H_
+
+#include "userLib/common.h"
+#include "userLib/init.h"
+#include "userLib/pidController.h"
+#include "userLib/movingArray.h"
+
+void testMotor();
+void testBothMotor();
+void testEncoder();
+void testBothEncoder();
+
+#endif /* HWTEST_H_ */
