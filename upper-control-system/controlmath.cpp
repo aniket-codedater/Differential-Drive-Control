@@ -2,7 +2,6 @@
 #include <math.h>
 #include "pidController.h"
 
-
 float sigmoid(float x) {
 	return ((1/(1+exp(-x))) - 0.5) * 2;
 }
@@ -19,11 +18,14 @@ float normalizeAngle(float degree) {
     return radianToDegree(atan2(sin(degreeToRadian(degree)), cos(degreeToRadian(degree))));
 }
 
-
-
 struct differentialState transformUniToDiff(struct unicycleState uniState) {
 	struct differentialState diffState;
-
+    float v;
+   	if(uniState.vy>0) {
+		v = sqrt(unistate.vx * unistate.vx + unistate.vy * unistate.vy);
+	} else if(uniState.vy<0) {
+		v = - sqrt(unistate.vx * unistate.vx + unistate.vy * unistate.vy);
+	}
 	//using the kinematics equations
 	float vleft = (2*uniState.v -L*uniState.w) / (2 * r);
 	float vright = (2*uniState.v + L*uniState.w)/(2 * r);
