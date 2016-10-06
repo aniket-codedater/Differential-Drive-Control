@@ -5,7 +5,9 @@
 #include "driveConfig.h"
 
 struct point { float x; float y; };
-struct unicycleState {float v; float w;};
+struct unicycleState {float vx; float vy; float w;};	// Preference of vx and vy because sending only v will require to send phi information explicitly while
+														// vx and vy implicitly define phi as well as v. In a nutshell, easily understandable. You can delete these
+														// these comments when understood about the changes
 struct position {float x; float y; int phi;};
 
 
