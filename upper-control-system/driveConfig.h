@@ -23,13 +23,10 @@
 #define HEADING_TOL 2
 
 enum {left, right}; //wheel
-enum {lRPM, rRPM, angularVel}; // movingArray, PID
+enum {lRPM, rRPM, angularVel}; // movingArray, PID   //Why PID on lRPM and rRPM?
 enum {headingControl};
 
 struct differentialState {int leftRPM; int rightRPM;};
-
-
-
 
 //Bot specifications
 #define wheelRadius 5.0
