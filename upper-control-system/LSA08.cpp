@@ -24,7 +24,7 @@ struct point finePos(struct lineSensor ls, float lineTheta, struct point junctio
 		return curPos;
 	}
 	float d = (data - 35.0)/ 35.0 * 5.6;
-	float deltaY = (d * sin(degreeToRadian(lineTheta - curHeading - ls.SAngle))) + 
+	float deltaY = (d * sin(degreeToRadian(lineTheta - curHeading - ls.SAngle))) +
 			(ls.distanceFromCenter * sin(degreeToRadian(lineTheta - curHeading - ls.DAngle)));
 	junctionPoint = rotationalTransform(junctionPoint, lineTheta);
 	float correctY = junctionPoint.y + deltaY;

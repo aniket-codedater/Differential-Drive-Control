@@ -11,6 +11,7 @@
 #include "timerInterrupt.h"
 #include "controlmath.h"
 #include "pidController.h"
+#include "LSA08.h"
 
 long ticks[2] = {0, 0};
 struct position curBotPosition;
@@ -23,15 +24,23 @@ struct differentialState stopState;
 float desiredHeading = 0.0;
 float headingCorrection = 0;
 float headingError = 0;
+float prev_desiredPhi = 0;
+
+bool forward = true, reverse = false;
+float desiredJunction = 0;
+float lastJunction = 0;
+float ls1_error = 0, ls1_prev_error = 0;
 
 bool ps2Ready = false;
 bool imuReady = false;
 bool powerOffPressed = false;
 
+struct lineSensor ls1;
+
 int rpiPort;
 
 void slowTimerHandler() {
-	printf("slowLoop\n");
+//	printf("slowLoop\n");
 	digitalWrite(slowLoopLED, !digitalRead(slowLoopLED));
 }
 
@@ -60,7 +69,10 @@ void powerOff() {
 void reset() {
 	resetRefHeading();
 	resetPIDvar(headingControl);
+	ls1_error = 0;
+	ls1_prev_error = 0;
 	headingCorrection = 0;
+	prev_desiredPhi = 0;
 }
 
 void ps2Activated() {
@@ -105,12 +117,11 @@ char encodeByte(int rpm) {
 }
 
 void transmitDiffState(struct differentialState desiredDiffState) {
-    printf("%d %d \r\n", desiredDiffState.leftRPM, desiredDiffState.rightRPM);
     serialPutchar(rpiPort, 0x0A);
-    printf("%c\t",encodeByte(desiredDiffState.leftRPM));
-    printf("%c\t;",encodeByte(desiredDiffState.rightRPM));
     serialPutchar(rpiPort, encodeByte(desiredDiffState.leftRPM));
     serialPutchar(rpiPort, encodeByte(desiredDiffState.rightRPM));
+    printf("%d %d \r\n", desiredDiffState.leftRPM, desiredDiffState.rightRPM);
+
 }
 
 /**************************************************************************************************************************/
@@ -128,7 +139,7 @@ void calculateDiffState() {
 }
 
 void calculatePos() {
-	curBotPosition.phi = normalizeAngle(phi_ref - getHeading());
+	curBotPosition.phi = normalizeAngle(getHeading());
 	float leftDist = curDiffState.leftRPM * timeInterval / 60.0 * circumference;
 	float rightDist = curDiffState.rightRPM * timeInterval / 60.0 * circumference;
 	float dist = (leftDist + rightDist) / 2;
@@ -136,10 +147,26 @@ void calculatePos() {
 	curBotPosition.x += dist * cos(degreeToRadian(curBotPosition.phi));
 	curBotPosition.y += dist * sin(degreeToRadian(curBotPosition.phi));
 }
+
+//Function to read linesensors and preprocess it.
+void lineFeedback(void) {
+    ls1_error = readLineSensor(ls1);
+    if(ls1_error == 255) {
+    	if(ls1_prev_error < 0) {
+			ls1_error = -50;
+		} else if(ls1_prev_error > 0) {
+			ls1_error = 50;
+		} else {
+			ls1_error = 0;
+		}
+    }
+	ls1_prev_error = ls1_error;
+}
+
 /**************************************************************************************************************************/
 /*Functions for manual driving of Differential robot with heading control												  */
 /**************************************************************************************************************************/
-
+/*
 struct unicycleState getDesiredUnicycleState(struct position curBotPosition,struct position desiredBotPosition) {
 	struct unicycleState desiredState;
 	float vy;
@@ -174,7 +201,7 @@ struct unicycleState getDesiredUnicycleState(struct position curBotPosition,stru
 			desiredPhi = 180 - radianToDegree(atan((-1)*vy/vx));
 		} else {
 			desiredPhi = radianToDegree(atan(vy/vx)) - 180;
-		}		
+		}
 		//desiredPhi = radianToDegree(atan(vy/vx));
 
 		//desiredPhi = radianToDegree(atan((desiredBotPosition.y - curBotPosition.y) / (desiredBotPosition.x - curBotPosition.x)));
@@ -183,19 +210,42 @@ struct unicycleState getDesiredUnicycleState(struct position curBotPosition,stru
 	desiredState.v = vmax * sigmoid(v);
 	//desiredState.w = normalizeAngle(desiredPhi - getHeading());
 	desiredState.w = PID(normalizeAngle(desiredPhi - getHeading()), angularVel);
-	printf("%f  ",desiredState.v);
-	printf("%f  ;",desiredState.w);
+	//printf("%f  ",desiredState.v);
+	//printf("W = %f ;\n",desiredState.w);
 	return desiredState;
 }
+*/
 
-//Overloaded function for manual driving with heading control
-struct unicycleState getDesiredUnicycleState(void) {
+//Function for manual driving with heading control
+struct unicycleState getDesiredUnicycleState_manual(void) {
 	struct unicycleState desiredState;
 	float vy, vx;
 	desiredState.vy = (128 - ps2_getY()) * vmax / 128;
 	desiredState.vx = -(128 - ps2_getX()) * vmax / 128;
-	float desiredPhi = radianToDegree(atan2(abs(desiredState.vy), desiredState.vx)); //Absolute of vy so that for negative v the angle does not go -ve and the robot does not turn. We want it to drive backwards
+	float desiredPhi;
+	if(desiredState.vy == 0 && desiredState.vx == 0) {
+		desiredPhi = prev_desiredPhi;
+	} else {
+		desiredPhi = radianToDegree((PI/2) - atan2(abs(desiredState.vy), desiredState.vx)); //Absolute of vy so that for negative v the angle does not go -ve and the robot does not turn. We want it to drive backwards
+	}
+	prev_desiredPhi = desiredPhi;
 	desiredState.w = PID(desiredPhi - getHeading(), headingControl); //No need of normalize angle because getHeading() gives normalized angle (I think)
+//CHECK2    printf("%f %f %f\n",desiredState.vx, desiredState.vy, desiredState.w);
+	return desiredState;
+}
+
+//Function for autonomous driving with heading control and linesensors
+struct unicycleState getDesiredUnicycleState_line(void) {
+	struct unicycleState desiredState;
+	float vy, vx;
+	lineFeedback();
+//CHECK1	printf("%f\n",ls1_error);
+	desiredState.vy = (128 - ps2_getY()) * vmax / 128;
+	desiredState.vx = -(128 - ps2_getX()) * vmax / 128;
+	float desiredPhi = radianToDegree((PI/2) - atan2(abs(desiredState.vy), desiredState.vx)); //Absolute of vy so that for negative v the angle does not go -ve and the robot does not turn. We want it to drive backwards
+	desiredState.vx += PID(ls1_error,lineControl);
+	desiredState.w = PID(desiredPhi - getHeading(), headingControl); //No need of normalize angle because getHeading() gives normalized angle (I think)
+//CHECK2	printf("%f %f %f\n",desiredState.vx, desiredState.vy, desiredState.w);
 	return desiredState;
 }
 
@@ -204,13 +254,20 @@ void timerHandler() {
 		transmitDiffState(stopState);
 	} else {
 //For automation
+//	AUTOMATION based on Positioning
 //		calculateDiffState();
 //		calculatePos();
 //		desiredDiffState = transformUniToDiff(getDesiredUnicycleState(curBotPosition, desiredBotPosition));
+
+//	AUTOMATION based on LineSensors
+//		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_line());
+
 //For manual with heading control
-		desiredDiffState = transformUniToDiff(getDesiredUnicycleState());
+		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_manual());
+
 		transmitDiffState(desiredDiffState);
 		digitalWrite(miscLED, !digitalRead(miscLED));
+//CHECK3		printf("%d %d\n",desiredDiffState.leftRPM,desiredDiffState.rightRPM);
 	}
 }
 
@@ -219,7 +276,7 @@ void init() {
 	stopState.rightRPM = 0;
 	if(wiringPiSetup() < 0) {
 		printf("Error setting up while setting wiringPi\n");
-	}	
+	}
 /*
 * Button and LED configurations
 */
@@ -253,13 +310,31 @@ void init() {
 	curBotPosition.phi = 0;
 }
 
+//Interrupt on Junction occurence
+void junctionInterrupt() {
+	if (forward) {
+			lastJunction++;
+	} else if (reverse) {
+		lastJunction--;
+	}
+}
+
 int main() {
 	rpiPort = serialOpen("/dev/ttyS0",38400);			/*Serial communication port established*/
-	initPIDController(1.0,0.0,0.0,headingControl);		/*PID controller initialization*/
+	initPIDController(0.05,0.0,0.0,headingControl);		/*PID controller initialization*/
+	initPIDController(0.0,0.0,0.0,lineControl);
 	init();
+
+	ls1.address = 1;
+	ls1.uartPort = rpiPort;
+	ls1.UARTPin = 6;
+	ls1.junctionPin = 13;
+
 	desiredBotPosition.x = 0.0;
 	desiredBotPosition.y = 0.0;
 	desiredBotPosition.phi = 0;
+
+	initLineSensor(ls1,junctionInterrupt);
 	initTimer(1000000/PIDfrequency, &timerHandler);
 	while(1) {
         sleep(1);

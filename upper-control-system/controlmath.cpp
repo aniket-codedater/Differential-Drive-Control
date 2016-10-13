@@ -18,6 +18,18 @@ float normalizeAngle(float degree) {
     return radianToDegree(atan2(sin(degreeToRadian(degree)), cos(degreeToRadian(degree))));
 }
 
+struct point rotationalTransform(struct point point_, float theta) {
+	return rotationalTransform(point_.x, point_.y, theta);
+}
+
+struct point rotationalTransform(float x, float y, float theta){
+    struct point pos;
+    theta = degreeToRadian(theta);
+    pos.x = x * cos(theta) + y * sin(theta);
+    pos.y = y * cos(theta) - x * sin(theta);
+    return pos;
+}
+
 struct differentialState transformUniToDiff(struct unicycleState uniState) {
 	struct differentialState diffState;
     float v;

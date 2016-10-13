@@ -23,8 +23,7 @@
 #define HEADING_TOL 2
 
 enum {left, right}; //wheel
-enum {lRPM, rRPM, angularVel}; // movingArray, PID   //Why PID on lRPM and rRPM?
-enum {headingControl};
+enum {headingControl,lineControl};
 
 struct differentialState {int leftRPM; int rightRPM;};
 
