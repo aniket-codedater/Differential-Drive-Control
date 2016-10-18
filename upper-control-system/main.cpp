@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <unistd.h>
 #include <math.h>
@@ -12,13 +11,24 @@
 #include "controlmath.h"
 #include "pidController.h"
 #include "LSA08.h"
+#include "userlib_interrupt.h"
+
+//Interrupt function definitions
+bool ps2Ready = false;
+bool imuReady = false;
+bool powerOffPressed = false;
+void slowTimerHandler();
+void ps2Activated();
+void ps2Deactivated();
+void imuActivated();
+void imuDeactivated();
+
 
 long ticks[2] = {0, 0};
 struct position curBotPosition;
 struct position desiredBotPosition;
 struct differentialState curDiffState;
 struct differentialState desiredDiffState;
-
 struct differentialState stopState;
 
 float desiredHeading = 0.0;
@@ -29,74 +39,20 @@ float prev_desiredPhi = 0;
 bool forward = true, reverse = false;
 float desiredJunction = 0;
 float lastJunction = 0;
+
 float ls1_error = 0, ls1_prev_error = 0;
 
-bool ps2Ready = false;
-bool imuReady = false;
-bool powerOffPressed = false;
-
-struct lineSensor ls1;
-
+struct lineSensor ls1,ls2;
 int rpiPort;
-
-void slowTimerHandler() {
-//	printf("slowLoop\n");
-	digitalWrite(slowLoopLED, !digitalRead(slowLoopLED));
-}
-
-void powerOff() {
-	if(powerOffPressed) return;
-	powerOffPressed = true;
-	printf("powerOff\n");
-	stopIMU();
-	stopPS2();
-	stopTimer();
-	for(int i = 1; i <=3; i++) {
-		digitalWrite(ps2InputLED, HIGH);
-		digitalWrite(headingLED, HIGH);
-		digitalWrite(slowLoopLED, HIGH);
-		digitalWrite(miscLED, HIGH);
-		sleep(1);
-		digitalWrite(ps2InputLED, LOW);
-		digitalWrite(headingLED, LOW);
-		digitalWrite(slowLoopLED, LOW);
-		digitalWrite(miscLED, LOW);
-		sleep(1);
-	}
-	system("shutdown -h now");
-}
 
 void reset() {
 	resetRefHeading();
 	resetPIDvar(headingControl);
+	resetPIDvar(lineControl);
 	ls1_error = 0;
 	ls1_prev_error = 0;
 	headingCorrection = 0;
 	prev_desiredPhi = 0;
-}
-
-void ps2Activated() {
-	printf("ps2 Activated...\n");
-	ps2Ready = true;
-	digitalWrite(ps2InputLED, HIGH);
-}
-
-void ps2Deactivated() {
-	printf("PS2 Deactivated...\n");
-	ps2Ready = false;
-	digitalWrite(ps2InputLED, LOW);
-}
-
-void imuActivated() {
-	printf("IMU Activated...\n");
-	imuReady = true;
-	digitalWrite(headingLED, HIGH);
-}
-
-void imuDeactivated() {
-	printf("IMU Deactivated...\n");
-	imuReady = false;
-	digitalWrite(headingLED, LOW);
 }
 
 char encodeByte(int rpm) {
@@ -120,8 +76,6 @@ void transmitDiffState(struct differentialState desiredDiffState) {
     serialPutchar(rpiPort, 0x0A);
     serialPutchar(rpiPort, encodeByte(desiredDiffState.leftRPM));
     serialPutchar(rpiPort, encodeByte(desiredDiffState.rightRPM));
-    printf("%d %d \r\n", desiredDiffState.leftRPM, desiredDiffState.rightRPM);
-
 }
 
 /**************************************************************************************************************************/
@@ -161,6 +115,44 @@ void lineFeedback(void) {
 		}
     }
 	ls1_prev_error = ls1_error;
+}
+
+//Map velocity according to percent path
+float velocityMap(void) {
+	float velocity = 0;
+	int percentPath = desiredJunction - lastJunction;
+	switch(abs(percentPath)) {
+		case 0:
+			velocity = 0;
+			break;
+		case 1:
+			velocity = maxVelocity * 0.2;
+			break;
+		case 2:
+			velocity = maxVelocity * 0.5;
+			break;
+		case 3:
+			velocity = maxVelocity * 0.8;
+			break;
+		case 4:
+			velocity = maxVelocity * 0.9;
+			break;
+		case 5:
+			velocity = maxVelocity;
+			break;
+	}
+	if (percentPath > 0) {
+		forward = true;
+		reverse = false;
+	} else if(percentPath < 0) {
+		forward = false;
+		reverse = true;
+		velocity = -velocity;
+	} else {
+		forward = false;
+		reverse = false;
+	}
+	return velocity;
 }
 
 /**************************************************************************************************************************/
@@ -220,8 +212,8 @@ struct unicycleState getDesiredUnicycleState(struct position curBotPosition,stru
 struct unicycleState getDesiredUnicycleState_manual(void) {
 	struct unicycleState desiredState;
 	float vy, vx;
-	desiredState.vy = (128 - ps2_getY()) * vmax / 128;
-	desiredState.vx = -(128 - ps2_getX()) * vmax / 128;
+	desiredState.vy = (128 - ps2_getY()) * maxVelocity / 128;
+	desiredState.vx = -(128 - ps2_getX()) * maxVelocity / 128;
 	float desiredPhi;
 	if(desiredState.vy == 0 && desiredState.vx == 0) {
 		desiredPhi = prev_desiredPhi;
@@ -230,21 +222,32 @@ struct unicycleState getDesiredUnicycleState_manual(void) {
 	}
 	prev_desiredPhi = desiredPhi;
 	desiredState.w = PID(desiredPhi - getHeading(), headingControl); //No need of normalize angle because getHeading() gives normalized angle (I think)
-//CHECK2    printf("%f %f %f\n",desiredState.vx, desiredState.vy, desiredState.w);
+//CHECK2        printf("%f %f %f\n",desiredState.vx, desiredState.vy, desiredState.w);
 	return desiredState;
 }
 
-//Function for autonomous driving with heading control and linesensors
+//Function for semiautonomous driving with heading control and linesensors
 struct unicycleState getDesiredUnicycleState_line(void) {
 	struct unicycleState desiredState;
 	float vy, vx;
 	lineFeedback();
-//CHECK1	printf("%f\n",ls1_error);
-	desiredState.vy = (128 - ps2_getY()) * vmax / 128;
-	desiredState.vx = -(128 - ps2_getX()) * vmax / 128;
-	float desiredPhi = radianToDegree((PI/2) - atan2(abs(desiredState.vy), desiredState.vx)); //Absolute of vy so that for negative v the angle does not go -ve and the robot does not turn. We want it to drive backwards
-	desiredState.vx += PID(ls1_error,lineControl);
-	desiredState.w = PID(desiredPhi - getHeading(), headingControl); //No need of normalize angle because getHeading() gives normalized angle (I think)
+//CHECK1 printf("%f\n",ls1_error);
+	desiredState.vx = 0;
+	desiredState.vy = (128 - ps2_getY()) * maxVelocity;
+	desiredState.w = PID(ls1_error, lineControl); //No need of normalize angle because getHeading() gives normalized angle (I think)
+//CHECK2	printf("%f %f %f\n",desiredState.vx, desiredState.vy, desiredState.w);
+	return desiredState;
+}
+
+//Function for autonomous driving with heading control and linesensors
+struct unicycleState getDesiredUnicycleState_auto(void) {
+	struct unicycleState desiredState;
+	float vy, vx;
+	lineFeedback();
+//CHECK1 printf("%f\n",ls1_error);
+	desiredState.vx = 0;
+	desiredState.vy = velocityMap();
+	desiredState.w = PID(ls1_error, lineControl); //No need of normalize angle because getHeading() gives normalized angle (I think)
 //CHECK2	printf("%f %f %f\n",desiredState.vx, desiredState.vy, desiredState.w);
 	return desiredState;
 }
@@ -260,14 +263,14 @@ void timerHandler() {
 //		desiredDiffState = transformUniToDiff(getDesiredUnicycleState(curBotPosition, desiredBotPosition));
 
 //	AUTOMATION based on LineSensors
-//		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_line());
+		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_line());
 
 //For manual with heading control
-		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_manual());
+//		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_manual());
 
 		transmitDiffState(desiredDiffState);
 		digitalWrite(miscLED, !digitalRead(miscLED));
-//CHECK3		printf("%d %d\n",desiredDiffState.leftRPM,desiredDiffState.rightRPM);
+	printf("%d %d \n",desiredDiffState.leftRPM,desiredDiffState.rightRPM);
 	}
 }
 
@@ -312,17 +315,17 @@ void init() {
 
 //Interrupt on Junction occurence
 void junctionInterrupt() {
-	if (forward) {
-			lastJunction++;
+	/*if (forward) {
+		lastJunction++;
 	} else if (reverse) {
 		lastJunction--;
-	}
+	}*/
 }
 
 int main() {
 	rpiPort = serialOpen("/dev/ttyS0",38400);			/*Serial communication port established*/
-	initPIDController(0.05,0.0,0.0,headingControl);		/*PID controller initialization*/
-	initPIDController(0.0,0.0,0.0,lineControl);
+	initPIDController(0.25,0.0,3.0,headingControl);		/*PID controller for angular velocity in manual mode*/
+	initPIDController(0.05,0.0,1.4,lineControl);		/*PID controller for angular velocity in linefollow mode*/
 	init();
 
 	ls1.address = 1;
@@ -334,14 +337,9 @@ int main() {
 	desiredBotPosition.y = 0.0;
 	desiredBotPosition.phi = 0;
 
-	initLineSensor(ls1,junctionInterrupt);
+	initLineSensor(ls1, &junctionInterrupt);
 	initTimer(1000000/PIDfrequency, &timerHandler);
 	while(1) {
         sleep(1);
 	}
 }
-
-
-
-
-

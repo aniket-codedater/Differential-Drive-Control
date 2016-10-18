@@ -1,24 +1,27 @@
 #ifndef driveConfig
 #define driveConfig
 
-
 // software var
 #define pi					3.1416
 #define	timeInterval				0.03264				// 1024 * 255 / F_CPU // in sec
-
 
 // hardware var
 #define ticksPerRotation			720
 #define r					5.0
 #define L					47.5
 #define circumference				31.4				//2 * pi * r
-#define vmax					300
+
+/*Buttons config*/
 #define powerOffButton 4
 #define headingRefButton 0
 #define ps2InputLED 25
 #define headingLED 29
 #define slowLoopLED 27
 #define miscLED 28
+
+extern bool ps2Ready;
+extern bool imuReady;
+extern bool powerOffPressed;
 
 #define HEADING_TOL 2
 
@@ -41,10 +44,3 @@ struct differentialState {int leftRPM; int rightRPM;};
 #define PIDfrequency	40
 
 #endif
-
-
-
-
-
-
-
