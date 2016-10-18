@@ -1,3 +1,4 @@
+// Compile with -lpthread -lwiringPi
 #include <stdio.h>
 #include <unistd.h>
 #include <math.h>
@@ -5,13 +6,13 @@
 #include <wiringSerial.h>
 #include <stdlib.h>
 #include "driveConfig.h"
+#include "userlib_interrupt.h"
 #include "minimu9.h"
 #include "ps2USB.h"
 #include "timerInterrupt.h"
 #include "controlmath.h"
 #include "pidController.h"
 #include "LSA08.h"
-#include "userlib_interrupt.h"
 
 //Interrupt function definitions
 bool ps2Ready = false;
@@ -23,36 +24,44 @@ void ps2Deactivated();
 void imuActivated();
 void imuDeactivated();
 
-
-long ticks[2] = {0, 0};
 struct position curBotPosition;
 struct position desiredBotPosition;
 struct differentialState curDiffState;
 struct differentialState desiredDiffState;
 struct differentialState stopState;
+struct lineSensor ls1,ls2;
 
 float desiredHeading = 0.0;
 float headingCorrection = 0;
 float headingError = 0;
 float prev_desiredPhi = 0;
+float prev_vy = 0;
 
 bool forward = true, reverse = false;
 float desiredJunction = 0;
 float lastJunction = 0;
 
 float ls1_error = 0, ls1_prev_error = 0;
+float ls2_error = 0, ls2_prev_error = 0;
 
-struct lineSensor ls1,ls2;
 int rpiPort;
 
 void reset() {
 	resetRefHeading();
 	resetPIDvar(headingControl);
-	resetPIDvar(lineControl);
+	resetPIDvar(lineControl_fw);
+	resetPIDvar(lineControl_bw);
 	ls1_error = 0;
 	ls1_prev_error = 0;
+	ls2_error = 0;
+	ls2_prev_error = 0;
 	headingCorrection = 0;
 	prev_desiredPhi = 0;
+	prev_vy = 0;
+	lastJunction = 0;
+	deisredJunction = 0;
+	forward = true;
+	reverse = false;
 }
 
 char encodeByte(int rpm) {
@@ -115,6 +124,17 @@ void lineFeedback(void) {
 		}
     }
 	ls1_prev_error = ls1_error;
+    ls2_error = readLineSensor(ls2);
+    if(ls2_error == 255) {
+    	if(ls2_prev_error < 0) {
+			ls2_error = -50;
+		} else if(ls2_prev_error > 0) {
+			ls2_error = 50;
+		} else {
+			ls2_error = 0;
+		}
+    }
+	ls2_prev_error = ls2_error;
 }
 
 //Map velocity according to percent path
@@ -221,7 +241,7 @@ struct unicycleState getDesiredUnicycleState_manual(void) {
 		desiredPhi = radianToDegree((PI/2) - atan2(abs(desiredState.vy), desiredState.vx)); //Absolute of vy so that for negative v the angle does not go -ve and the robot does not turn. We want it to drive backwards
 	}
 	prev_desiredPhi = desiredPhi;
-	desiredState.w = PID(desiredPhi - getHeading(), headingControl); //No need of normalize angle because getHeading() gives normalized angle (I think)
+	desiredState.w = PID(desiredPhi - getHeading(), headingControl);
 //CHECK2        printf("%f %f %f\n",desiredState.vx, desiredState.vy, desiredState.w);
 	return desiredState;
 }
@@ -231,10 +251,23 @@ struct unicycleState getDesiredUnicycleState_line(void) {
 	struct unicycleState desiredState;
 	float vy, vx;
 	lineFeedback();
-//CHECK1 printf("%f\n",ls1_error);
+//CHECK1 printf("%f %f\n",ls1_error,ls2_error);
 	desiredState.vx = 0;
 	desiredState.vy = (128 - ps2_getY()) * maxVelocity;
-	desiredState.w = PID(ls1_error, lineControl); //No need of normalize angle because getHeading() gives normalized angle (I think)
+	
+	if(desiredState.vy > 0) {
+		desiredState.w = PID(ls1_error, lineControl_fw);
+		prev_vy = desiredState.vy;
+	} else if(desiredState.vy < 0) {
+		desiredState.w = PID(ls2_error, lineControl_bw);
+		prev_vy = desiredState.vy;
+	} else {
+		if(prev_vy >= 0) {
+			desiredState.w = PID(ls1_error, lineControl_fw);
+		} else {
+			desiredState.w = PID(ls2_error, lineControl_bw);			
+		}
+	}
 //CHECK2	printf("%f %f %f\n",desiredState.vx, desiredState.vy, desiredState.w);
 	return desiredState;
 }
@@ -256,21 +289,24 @@ void timerHandler() {
 	if(!ps2Ready || !imuReady) {
 		transmitDiffState(stopState);
 	} else {
-//For automation
-//	AUTOMATION based on Positioning
+/*	AUTOMATION based on Positioning */
 //		calculateDiffState();
 //		calculatePos();
 //		desiredDiffState = transformUniToDiff(getDesiredUnicycleState(curBotPosition, desiredBotPosition));
 
-//	AUTOMATION based on LineSensors
+/*	semiAUTOMATION based on LineSensors */
 		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_line());
 
-//For manual with heading control
+/*	AUTOMATION based on LineSensors */
+//		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_line());
+
+/* MANUAL with heading control */
 //		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_manual());
 
 		transmitDiffState(desiredDiffState);
 		digitalWrite(miscLED, !digitalRead(miscLED));
-	printf("%d %d \n",desiredDiffState.leftRPM,desiredDiffState.rightRPM);
+//CHECK4
+		printf("%d %d \n",desiredDiffState.leftRPM,desiredDiffState.rightRPM);
 	}
 }
 
@@ -333,11 +369,17 @@ int main() {
 	ls1.UARTPin = 6;
 	ls1.junctionPin = 13;
 
+	ls2.address = 2;
+	ls2.uartPort = rpiPort;
+	ls2.UARTPin = 12;
+	ls2.junctionPin = 5;
+
 	desiredBotPosition.x = 0.0;
 	desiredBotPosition.y = 0.0;
 	desiredBotPosition.phi = 0;
 
 	initLineSensor(ls1, &junctionInterrupt);
+	initLineSensor(ls2);
 	initTimer(1000000/PIDfrequency, &timerHandler);
 	while(1) {
         sleep(1);

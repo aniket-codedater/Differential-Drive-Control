@@ -26,7 +26,7 @@ extern bool powerOffPressed;
 #define HEADING_TOL 2
 
 enum {left, right}; //wheel
-enum {headingControl,lineControl};
+enum {headingControl,lineControl_fw,lineControl_bw};
 
 struct differentialState {int leftRPM; int rightRPM;};
 
