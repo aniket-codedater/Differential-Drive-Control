@@ -3,6 +3,7 @@
 #include <wiringPi.h>
 #include <math.h>
 #include <wiringSerial.h>
+#include <unistd.h>
 #include "controlmath.h"
 
 char getLineSensorData(struct lineSensor ls){
@@ -38,6 +39,7 @@ void initLineSensor(struct lineSensor ls) {
 void initLineSensor(struct lineSensor ls, void (*junctionInterruptHandler)(void)) {
 	pinMode(ls.UARTPin, OUTPUT);
 	digitalWrite(ls.UARTPin, HIGH);
+	pinMode(ls.junctionPin, INPUT);
 	if(wiringPiISR(ls.junctionPin,INT_EDGE_RISING,junctionInterruptHandler)<0) {
 		printf("line sensor interrupt setup error \n");
 	}

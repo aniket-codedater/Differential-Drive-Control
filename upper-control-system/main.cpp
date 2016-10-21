@@ -43,6 +43,7 @@ float lastJunction = 0;
 
 float ls1_error = 0, ls1_prev_error = 0;
 float ls2_error = 0, ls2_prev_error = 0;
+float ticks[2];
 
 int rpiPort;
 
@@ -59,7 +60,7 @@ void reset() {
 	prev_desiredPhi = 0;
 	prev_vy = 0;
 	lastJunction = 0;
-	deisredJunction = 0;
+	desiredJunction = 0;
 	forward = true;
 	reverse = false;
 }
@@ -280,7 +281,7 @@ struct unicycleState getDesiredUnicycleState_auto(void) {
 //CHECK1 printf("%f\n",ls1_error);
 	desiredState.vx = 0;
 	desiredState.vy = velocityMap();
-	desiredState.w = PID(ls1_error, lineControl); //No need of normalize angle because getHeading() gives normalized angle (I think)
+	desiredState.w = PID(ls1_error, lineControl_fw); //No need of normalize angle because getHeading() gives normalized angle (I think)
 //CHECK2	printf("%f %f %f\n",desiredState.vx, desiredState.vy, desiredState.w);
 	return desiredState;
 }
@@ -361,7 +362,8 @@ void junctionInterrupt() {
 int main() {
 	rpiPort = serialOpen("/dev/ttyS0",38400);			/*Serial communication port established*/
 	initPIDController(0.25,0.0,3.0,headingControl);		/*PID controller for angular velocity in manual mode*/
-	initPIDController(0.05,0.0,1.4,lineControl);		/*PID controller for angular velocity in linefollow mode*/
+	initPIDController(0.05,0.0,1.4,lineControl_fw);		/*PID controller for angular velocity in linefollow_fw mode*/
+	initPIDController(0.05,0.0,1.4,lineControl_bw);		/*PID controller for angular velocity in linefollow_bw mode*/
 	init();
 
 	ls1.address = 1;

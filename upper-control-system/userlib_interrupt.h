@@ -4,6 +4,9 @@
 #include <wiringPi.h>
 #include <unistd.h>
 #include <stdio.h>
+#include "ps2USB.h"
+#include "minimu9.h"
+#include "timerInterrupt.h"
 
 extern void slowTimerHandler();
 extern void ps2Activated();
