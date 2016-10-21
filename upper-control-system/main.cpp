@@ -38,8 +38,8 @@ float prev_desiredPhi = 0;
 float prev_vy = 0;
 
 bool forward = true, reverse = false;
-float desiredJunction = 0;
-float lastJunction = 0;
+float desiredJunction = 4;
+volatile float lastJunction = 0;
 
 float ls1_error = 0, ls1_prev_error = 0;
 float ls2_error = 0, ls2_prev_error = 0;
@@ -48,6 +48,7 @@ float ticks[2];
 int rpiPort;
 
 void reset() {
+	printf("RESET\n");
 	resetRefHeading();
 	resetPIDvar(headingControl);
 	resetPIDvar(lineControl_fw);
@@ -91,7 +92,7 @@ void transmitDiffState(struct differentialState desiredDiffState) {
 /**************************************************************************************************************************/
 /*Functions for automation of Differential robot																		  */
 /**************************************************************************************************************************/
-void calculateDiffState() {
+/*void calculateDiffState() {
 	int x;
 	int sampledTicks[] = {ticks[left], ticks[right]};
 	ticks[0] = 0;
@@ -110,7 +111,7 @@ void calculatePos() {
 
 	curBotPosition.x += dist * cos(degreeToRadian(curBotPosition.phi));
 	curBotPosition.y += dist * sin(degreeToRadian(curBotPosition.phi));
-}
+}*/
 
 //Function to read linesensors and preprocess it.
 void lineFeedback(void) {
@@ -124,7 +125,8 @@ void lineFeedback(void) {
 			ls1_error = 0;
 		}
     }
-	ls1_prev_error = ls1_error;
+    ls1_prev_error = ls1_error;
+    usleep(1000);	//readings skew if this is removed. Need further study : Aniket,20 October,2016
     ls2_error = readLineSensor(ls2);
     if(ls2_error == 255) {
     	if(ls2_prev_error < 0) {
@@ -135,7 +137,7 @@ void lineFeedback(void) {
 			ls2_error = 0;
 		}
     }
-	ls2_prev_error = ls2_error;
+    ls2_prev_error = ls2_error;
 }
 
 //Map velocity according to percent path
@@ -147,16 +149,16 @@ float velocityMap(void) {
 			velocity = 0;
 			break;
 		case 1:
-			velocity = maxVelocity * 0.2;
+			velocity = maxVelocity * 0.3;
 			break;
 		case 2:
-			velocity = maxVelocity * 0.5;
+			velocity = maxVelocity * 0.6;
 			break;
 		case 3:
-			velocity = maxVelocity * 0.8;
+			velocity = maxVelocity * 0.9;
 			break;
 		case 4:
-			velocity = maxVelocity * 0.9;
+			velocity = maxVelocity;
 			break;
 		case 5:
 			velocity = maxVelocity;
@@ -243,7 +245,7 @@ struct unicycleState getDesiredUnicycleState_manual(void) {
 	}
 	prev_desiredPhi = desiredPhi;
 	desiredState.w = PID(desiredPhi - getHeading(), headingControl);
-//CHECK2        printf("%f %f %f\n",desiredState.vx, desiredState.vy, desiredState.w);
+//CHECK2 printf("%f %f %f;",desiredState.vx, desiredState.vy, desiredState.w);
 	return desiredState;
 }
 
@@ -252,10 +254,35 @@ struct unicycleState getDesiredUnicycleState_line(void) {
 	struct unicycleState desiredState;
 	float vy, vx;
 	lineFeedback();
-//CHECK1 printf("%f %f\n",ls1_error,ls2_error);
+//CHECK1 printf("%f %f \n",ls1_error,ls2_error);
 	desiredState.vx = 0;
 	desiredState.vy = (128 - ps2_getY()) * maxVelocity;
 	
+	if(desiredState.vy > 0) {
+		desiredState.w = PID(ls1_error, lineControl_fw);
+		prev_vy = desiredState.vy;
+	} else if(desiredState.vy < 0) {
+		desiredState.w = PID(ls2_error, lineControl_bw);
+		prev_vy = desiredState.vy;
+	} else {
+		if(prev_vy >= 0) {
+			desiredState.w = PID(ls1_error, lineControl_fw);
+		} else {
+			desiredState.w = PID(ls2_error, lineControl_bw);			
+		}
+	}
+//CHECK2 printf("%f %f %f\n",desiredState.vx, desiredState.vy, desiredState.w);
+	return desiredState;
+}
+
+//Function for autonomous driving with heading control and linesensors
+struct unicycleState getDesiredUnicycleState_auto(void) {
+	struct unicycleState desiredState;
+	float vy, vx;
+	lineFeedback();
+//CHECK1 printf("%f\n",ls1_error);
+	desiredState.vx = 0;
+	desiredState.vy = velocityMap();
 	if(desiredState.vy > 0) {
 		desiredState.w = PID(ls1_error, lineControl_fw);
 		prev_vy = desiredState.vy;
@@ -273,21 +300,8 @@ struct unicycleState getDesiredUnicycleState_line(void) {
 	return desiredState;
 }
 
-//Function for autonomous driving with heading control and linesensors
-struct unicycleState getDesiredUnicycleState_auto(void) {
-	struct unicycleState desiredState;
-	float vy, vx;
-	lineFeedback();
-//CHECK1 printf("%f\n",ls1_error);
-	desiredState.vx = 0;
-	desiredState.vy = velocityMap();
-	desiredState.w = PID(ls1_error, lineControl_fw); //No need of normalize angle because getHeading() gives normalized angle (I think)
-//CHECK2	printf("%f %f %f\n",desiredState.vx, desiredState.vy, desiredState.w);
-	return desiredState;
-}
-
 void timerHandler() {
-	if(!ps2Ready || !imuReady) {
+	if(!ps2Ready /*|| !imuReady*/) {
 		transmitDiffState(stopState);
 	} else {
 /*	AUTOMATION based on Positioning */
@@ -296,18 +310,18 @@ void timerHandler() {
 //		desiredDiffState = transformUniToDiff(getDesiredUnicycleState(curBotPosition, desiredBotPosition));
 
 /*	semiAUTOMATION based on LineSensors */
-		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_line());
+//		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_line());
 
 /*	AUTOMATION based on LineSensors */
-//		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_line());
+		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_auto());
 
 /* MANUAL with heading control */
 //		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_manual());
 
 		transmitDiffState(desiredDiffState);
 		digitalWrite(miscLED, !digitalRead(miscLED));
-//CHECK4
-		printf("%d %d \n",desiredDiffState.leftRPM,desiredDiffState.rightRPM);
+//CHECK4 
+printf("%d %d \n",desiredDiffState.leftRPM,desiredDiffState.rightRPM);
 	}
 }
 
@@ -343,7 +357,7 @@ void init() {
 	enableIMUStatusInterrupt(&imuActivated, &imuDeactivated);
 	enableSlowFuncInterrupt(&slowTimerHandler);
 	initPS2();
-	initIMU();
+	//initIMU();
 	//taking initial point as origin
 	curBotPosition.x = 0.0;
 	curBotPosition.y = 0.0;
@@ -351,39 +365,42 @@ void init() {
 }
 
 //Interrupt on Junction occurence
-void junctionInterrupt() {
-	/*if (forward) {
+void junctionInterrupt(void) {
+	if (forward) {
 		lastJunction++;
 	} else if (reverse) {
 		lastJunction--;
-	}*/
+	}
 }
+
+void dummy() {}
 
 int main() {
 	rpiPort = serialOpen("/dev/ttyS0",38400);			/*Serial communication port established*/
 	initPIDController(0.25,0.0,3.0,headingControl);		/*PID controller for angular velocity in manual mode*/
-	initPIDController(0.05,0.0,1.4,lineControl_fw);		/*PID controller for angular velocity in linefollow_fw mode*/
-	initPIDController(0.05,0.0,1.4,lineControl_bw);		/*PID controller for angular velocity in linefollow_bw mode*/
+	initPIDController(0.03,0.0,1.2,lineControl_fw);		/*PID controller for angular velocity in linefollow_fw mode*/
+	initPIDController(0.03,0.0,1.2,lineControl_bw);		/*PID controller for angular velocity in linefollow_bw mode*/
 	init();
 
 	ls1.address = 1;
 	ls1.uartPort = rpiPort;
 	ls1.UARTPin = 6;
-	ls1.junctionPin = 13;
+	ls1.junctionPin = 5;
 
 	ls2.address = 2;
 	ls2.uartPort = rpiPort;
 	ls2.UARTPin = 12;
-	ls2.junctionPin = 5;
+	ls2.junctionPin = 13;
 
 	desiredBotPosition.x = 0.0;
 	desiredBotPosition.y = 0.0;
 	desiredBotPosition.phi = 0;
 
 	initLineSensor(ls1, &junctionInterrupt);
-	initLineSensor(ls2);
+	initLineSensor(ls2, &dummy);
 	initTimer(1000000/PIDfrequency, &timerHandler);
 	while(1) {
-        sleep(1);
+//		printf("%f\n",lastJunction);
+        	sleep(1);
 	}
 }
