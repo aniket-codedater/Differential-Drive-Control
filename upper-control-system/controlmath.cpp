@@ -1,6 +1,7 @@
 #include "controlmath.h"
 #include <math.h>
 #include "pidController.h"
+#include <stdio.h>
 
 bool append = false;
 
@@ -39,9 +40,9 @@ struct differentialState rpmLimiter(struct differentialState state) {
 	if(max > maxRPM) {
 		while(dividend > maxRPM) {
 			dividend = max / factor;
-			factor += 0.5;
+			factor += 0.1;
 		}
-		factor -= 0.5;
+		factor -= 0.1;
 		state.leftRPM /= factor;	
 		state.rightRPM /= factor;	
 		append = true;
@@ -69,24 +70,25 @@ struct unicycleState velocityLimiter(struct unicycleState state) {
 
 struct differentialState transformUniToDiff(struct unicycleState uniState) {
 	struct differentialState diffState;
-    float v = sqrt(uniState.vx * uniState.vx + uniState.vy * uniState.vy);
+    	float v = sqrt(uniState.vx * uniState.vx + uniState.vy * uniState.vy);
 	uniState = velocityLimiter(uniState);
-	float w = fabs((L*uniState.w * 60.0) / (2 * r * circumference));	
+	float w = fabs((L*uniState.w * 60.0) / (4 * wheelRadius * PI));	
 	if(uniState.vy<0) {
-		v = - v;
+		v = -v;
 		w = -w;
+		uniState.w = -uniState.w;
 	}
 	//using the kinematics equations
-	float vleft = (2*v - L*uniState.w) / (2 * r);
-	float vright = (2*v + L*uniState.w)/(2 * r);
-	diffState.rightRPM = vright / circumference * 60;
-	diffState.leftRPM = vleft / circumference * 60;
-	diffState = rpmLimiter(diffState);
+	float vleft = (2*v - L*uniState.w) / (2 * wheelRadius);
+	float vright = (2*v + L*uniState.w)/(2 * wheelRadius);
+	diffState.rightRPM = (vright * 60.0) / (2.0 * PI);
+	diffState.leftRPM = (vleft * 60.0) / (2.0 * PI);
+	diffState = rpmLimiter(diffState);	
 	//If the RPM hits maximum limit, the heading correction rpm should be applied explicitly because if heading correction done before is scaled to almost neglibile
 	if(append) {
 		(vleft > vright) ? diffState.rightRPM = diffState.rightRPM - 2*w : diffState.leftRPM = diffState.leftRPM - 2*w;  
 	}
-	return (diffState);
+	return rpmLimiter(diffState);
 }
 
 
