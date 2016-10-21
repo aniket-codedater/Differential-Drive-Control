@@ -1,6 +1,16 @@
 #ifndef driveConfig
 #define driveConfig
 
+// software var
+#define pi					3.1416
+#define	timeInterval				0.03264				// 1024 * 255 / F_CPU // in sec
+
+// hardware var
+#define ticksPerRotation			720
+#define r					5.0
+#define L					47.5
+#define circumference				31.4				//2 * pi * r
+
 /*Buttons config*/
 #define powerOffButton 4
 #define headingRefButton 0
@@ -21,14 +31,14 @@ enum {headingControl,lineControl_fw,lineControl_bw};
 struct differentialState {int leftRPM; int rightRPM;};
 
 //Bot specifications
-#define wheelRadius 		4.854
-#define wheelCircumference 	(2 * PI * wheelRadius)
-#define L			49.0
-#define botRadius 		1.0
+#define wheelRadius 5.0
+#define wheelCircumference (2 * PI * wheelRadius)
+
+#define botRadius  1500
 
 //Motion constraints specifications
-#define maxRPM			252.0	//in rpm
-#define maxVelocity		120.0 //in cm/s
+#define maxRPM			252	//in rpm
+#define maxVelocity		300 //in cm/s
 
 //Frequency specifications
 #define PIDfrequency	40
