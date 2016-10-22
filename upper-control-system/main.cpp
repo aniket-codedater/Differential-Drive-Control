@@ -38,7 +38,7 @@ float prev_desiredPhi = 0;
 float prev_vy = 0;
 
 bool forward = true, reverse = false;
-float desiredJunction = 4;
+float desiredJunction = -4;
 volatile float lastJunction = 0;
 
 float ls1_error = 0, ls1_prev_error = 0;
@@ -254,7 +254,7 @@ struct unicycleState getDesiredUnicycleState_line(void) {
 	struct unicycleState desiredState;
 	float vy, vx;
 	lineFeedback();
-//CHECK1 printf("%f %f \n",ls1_error,ls2_error);
+//CHECK1 	printf("%f %f ;",ls1_error,ls2_error);
 	desiredState.vx = 0;
 	desiredState.vy = (128 - ps2_getY()) * maxVelocity;
 	
@@ -310,18 +310,17 @@ void timerHandler() {
 //		desiredDiffState = transformUniToDiff(getDesiredUnicycleState(curBotPosition, desiredBotPosition));
 
 /*	semiAUTOMATION based on LineSensors */
-//		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_line());
+		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_line());
 
 /*	AUTOMATION based on LineSensors */
-		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_auto());
+//		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_auto());
 
 /* MANUAL with heading control */
 //		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_manual());
 
 		transmitDiffState(desiredDiffState);
 		digitalWrite(miscLED, !digitalRead(miscLED));
-//CHECK4 
-printf("%d %d \n",desiredDiffState.leftRPM,desiredDiffState.rightRPM);
+//CHECK4 printf("%d %d \n",desiredDiffState.leftRPM,desiredDiffState.rightRPM);
 	}
 }
 
@@ -357,7 +356,7 @@ void init() {
 	enableIMUStatusInterrupt(&imuActivated, &imuDeactivated);
 	enableSlowFuncInterrupt(&slowTimerHandler);
 	initPS2();
-	//initIMU();
+	initIMU();
 	//taking initial point as origin
 	curBotPosition.x = 0.0;
 	curBotPosition.y = 0.0;
@@ -371,6 +370,7 @@ void junctionInterrupt(void) {
 	} else if (reverse) {
 		lastJunction--;
 	}
+		printf("%f\n",lastJunction);
 }
 
 void dummy() {}
@@ -378,8 +378,8 @@ void dummy() {}
 int main() {
 	rpiPort = serialOpen("/dev/ttyS0",38400);			/*Serial communication port established*/
 	initPIDController(0.25,0.0,3.0,headingControl);		/*PID controller for angular velocity in manual mode*/
-	initPIDController(0.03,0.0,1.2,lineControl_fw);		/*PID controller for angular velocity in linefollow_fw mode*/
-	initPIDController(0.03,0.0,1.2,lineControl_bw);		/*PID controller for angular velocity in linefollow_bw mode*/
+	initPIDController(0.005,0.0,0.3,lineControl_fw);		/*PID controller for angular velocity in linefollow_fw mode*/
+	initPIDController(0.005,0.0,0.3,lineControl_bw);		/*PID controller for angular velocity in linefollow_bw mode*/
 	init();
 
 	ls1.address = 1;
@@ -387,7 +387,7 @@ int main() {
 	ls1.UARTPin = 6;
 	ls1.junctionPin = 5;
 
-	ls2.address = 2;
+	ls2.address = 2;	
 	ls2.uartPort = rpiPort;
 	ls2.UARTPin = 12;
 	ls2.junctionPin = 13;
@@ -400,7 +400,7 @@ int main() {
 	initLineSensor(ls2, &dummy);
 	initTimer(1000000/PIDfrequency, &timerHandler);
 	while(1) {
-//		printf("%f\n",lastJunction);
+
         	sleep(1);
 	}
 }
