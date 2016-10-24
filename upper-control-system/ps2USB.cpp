@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <linux/input.h>
 #include <fcntl.h>
+#include "driveConfig.h"
 
 pthread_t PS2thread;
 int x = 128, y = 128;
@@ -28,6 +29,18 @@ bool startEnabled = false;
 bool selectEnabled = false;
 
 void (*circlePressed)(void);
+/*
+void (*circlePressed)(void){
+	struct unicycleState clkUniRotate;
+	clkUniRotate.vx = 0.0;
+	clkUniRotate.vy = 0.0;
+	clkUniRotate.w = 1.0;
+	struct differentialState clkDiffRotate;
+	clkDiffState = transformDiffState(getDesiredUnicycleState_line(clkUniRotate));
+	transmitDiffState(clkDiffRotate);
+}
+*/
+
 void (*circleReleased)(void);
 void (*squarePressed)(void);
 void (*squareReleased)(void);
@@ -227,6 +240,14 @@ void enablePS2StatusInterrupt(void (*activated)(void), void (*deactivated)(void)
 void enableCircleButton(void (*pressed)(void), void (*released)(void)){
 	circleEnabled = true;
 	circlePressed = pressed;
+	/*struct unicycleState clkUniRotate;
+	clkUniRotate.vx = 0.0;
+	clkUniRotate.vy = 0.0;
+	clkUniRotate.w = 1.0;
+	struct differentialState clkDiffRotate;
+	clkDiffState = transformDiffState(getDesiredUnicycleState_line(clkUniRotate));
+	transmitDiffState(clkDiffRotate);
+*/
 	circleReleased = released;
 }
 
