@@ -6,6 +6,10 @@
 #include <linux/input.h>
 #include <fcntl.h>
 #include "driveConfig.h"
+<<<<<<< HEAD
+=======
+#include "controlmath.h"
+>>>>>>> bd31424da6bb7df6b768ad5dbfc417003e83feb1
 
 pthread_t PS2thread;
 int x = 128, y = 128;
@@ -90,17 +94,22 @@ void* ps2Read(void *param) {
   			case 288: //triangle (0-1)
   				if(triangleEnabled) {
 					if(ie.value) {
+                        			desiredJunction = 0.0;
 						(*trianglePressed)();
 					} else {
 						(*triangleReleased)();
 					}
 				}
 				break;
-  			case 289: //Cirlce
+  			case 289: //Circle
 				if(circleEnabled) {
 					if(ie.value) {
+                        			desiredJunction = 1.0;
+                        			rotatePressed=1;
+						rotateDirection=0;
 						(*circlePressed)();
 					} else {
+					    	rotatePressed=0;
 						(*circleReleased)();
 					}
 				}
@@ -108,6 +117,7 @@ void* ps2Read(void *param) {
   			case 290: //Cross
   				if(crossEnabled) {
 					if(ie.value) {
+                        			desiredJunction = 2.0;
 						(*crossPressed)();
 					} else {
 						(*crossReleased)();
@@ -117,24 +127,31 @@ void* ps2Read(void *param) {
   			case 291: //Square
   				if(squareEnabled) {
 					if(ie.value) {
+                        			desiredJunction = 3.0;
+						rotatePressed=1;
+						rotateDirection=1;
 						(*squarePressed)();
 					} else {
+						rotatePressed=0;
 						(*squareReleased)();
 					}
 				}
   				break;
   			case 292: //L1
-  				if(L2Enabled) {
+  				if(L1Enabled) {
 					if(ie.value) {
+                        			mode = 1;
 						(*L1Pressed)();
 					} else {
+					    	mode = 0;
 						(*L1Released)();
 					}
 				}
   				break;
   			case 293: //R1
-  				if(R2Enabled) {
+  				if(R1Enabled) {
 					if(ie.value) {
+                        			desiredJunction = 4.0;
 						(*R1Pressed)();
 					} else {
 						(*R1Released)();
@@ -144,8 +161,10 @@ void* ps2Read(void *param) {
   			case 294: //L2
   				if(L2Enabled) {
 					if(ie.value) {
+                        			mode = 2;
 						(*L2Pressed)();
 					} else {
+					    	mode = 0;
 						(*L2Released)();
 					}
 				}

@@ -9,6 +9,7 @@
 #include "userlib_interrupt.h"
 #include "minimu9.h"
 #include "ps2USB.h"
+#include "ps2_2k17.h"
 #include "timerInterrupt.h"
 #include "controlmath.h"
 #include "pidController.h"
@@ -38,8 +39,6 @@ float prev_desiredPhi = 0;
 float prev_vy = 0;
 
 bool forward = true, reverse = false;
-float desiredJunction = -4;
-volatile float lastJunction = 0;
 
 float ls1_error = 0, ls1_prev_error = 0;
 float ls2_error = 0, ls2_prev_error = 0;
@@ -257,7 +256,7 @@ struct unicycleState getDesiredUnicycleState_line(void) {
 //CHECK1 	printf("%f %f ;",ls1_error,ls2_error);
 	desiredState.vx = 0;
 	desiredState.vy = (128 - ps2_getY()) * maxVelocity;
-	
+
 	if(desiredState.vy > 0) {
 		desiredState.w = PID(ls1_error, lineControl_fw);
 		prev_vy = desiredState.vy;
@@ -268,7 +267,7 @@ struct unicycleState getDesiredUnicycleState_line(void) {
 		if(prev_vy >= 0) {
 			desiredState.w = PID(ls1_error, lineControl_fw);
 		} else {
-			desiredState.w = PID(ls2_error, lineControl_bw);			
+			desiredState.w = PID(ls2_error, lineControl_bw);
 		}
 	}
 //CHECK2 printf("%f %f %f\n",desiredState.vx, desiredState.vy, desiredState.w);
@@ -293,11 +292,32 @@ struct unicycleState getDesiredUnicycleState_auto(void) {
 		if(prev_vy >= 0) {
 			desiredState.w = PID(ls1_error, lineControl_fw);
 		} else {
-			desiredState.w = PID(ls2_error, lineControl_bw);			
+			desiredState.w = PID(ls2_error, lineControl_bw);
 		}
 	}
 //CHECK2	printf("%f %f %f\n",desiredState.vx, desiredState.vy, desiredState.w);
 	return desiredState;
+}
+
+
+/**********************************************************************************************/
+/**  Functions for mode enabled driving  **/
+/**********************************************************************************************/
+
+struct unicycleState getDesiredUnicycleState_mode() {
+    int botMode = getMode();
+    modeChange();
+    switch(botMode) {
+            case 0: while(rotatePressed) {
+                        rotateBot();
+                    }
+                    return getDesiredUnicycleState_manual();
+                    break;
+            case 1: return getDesiredUnicycleState_line();
+                    break;
+            case 2: return getDesiredUnicycleState_auto();
+                    break;
+    }
 }
 
 void timerHandler() {
@@ -310,7 +330,7 @@ void timerHandler() {
 //		desiredDiffState = transformUniToDiff(getDesiredUnicycleState(curBotPosition, desiredBotPosition));
 
 /*	semiAUTOMATION based on LineSensors */
-		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_line());
+//		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_line());
 
 /*	AUTOMATION based on LineSensors */
 //		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_auto());
@@ -318,6 +338,8 @@ void timerHandler() {
 /* MANUAL with heading control */
 //		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_manual());
 
+/*  Mode control Driving */
+        desiredDiffState = transformUniToDiff(getDesiredUnicycleState_mode());
 		transmitDiffState(desiredDiffState);
 		digitalWrite(miscLED, !digitalRead(miscLED));
 //CHECK4 printf("%d %d \n",desiredDiffState.leftRPM,desiredDiffState.rightRPM);
@@ -356,6 +378,8 @@ void init() {
 	enableIMUStatusInterrupt(&imuActivated, &imuDeactivated);
 	enableSlowFuncInterrupt(&slowTimerHandler);
 	initPS2();
+	/** Robocon 2k17 PS2 configuration  */
+	initPS2_2k17();
 	initIMU();
 	//taking initial point as origin
 	curBotPosition.x = 0.0;
@@ -387,7 +411,7 @@ int main() {
 	ls1.UARTPin = 6;
 	ls1.junctionPin = 5;
 
-	ls2.address = 2;	
+	ls2.address = 2;
 	ls2.uartPort = rpiPort;
 	ls2.UARTPin = 12;
 	ls2.junctionPin = 13;

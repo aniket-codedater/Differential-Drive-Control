@@ -3,11 +3,22 @@
 
 #define PS2FILE "/dev/input/event0"
 
+#include "driveConfig.h"
+
+extern bool rotatePressed;
+extern bool rotateDirection;
+extern int mode;
+extern float desiredJunction;
+extern float lastJunction;
+
+
 int initPS2(void);
 int initPS2(char* device);
 void stopPS2();
 int ps2_getX(void);
 int ps2_getY(void);
+
+
 
 void enableCircleButton(void (*pressed)(void), void (*released)(void));
 void enableSquareButton(void (*pressed)(void), void (*released)(void));
@@ -36,5 +47,11 @@ void disableStartButton();
 void disableSelectButton();
 
 void enablePS2StatusInterrupt(void (*activated)(void), void (*deactivated)(void));
- 
+
 #endif
+
+
+
+
+
+
