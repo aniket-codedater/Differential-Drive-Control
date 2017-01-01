@@ -29,8 +29,8 @@ extern int32_t maxPWM, minPWM;
 #define A2 GPIO_PIN_0
 #define B1 GPIO_PIN_3
 #define B2 GPIO_PIN_2
-
-
+//Motor A PWM - PB5
+//Motor B PWM - PB4
 void setPWM(int pwm,int i);
 int calculateRPM(int i);
 unsigned absolute(int x);

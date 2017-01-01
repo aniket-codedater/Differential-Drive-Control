@@ -47,18 +47,19 @@ void uart5Init(void) {
 }
 
 void pwmInit(void) {
-	SysCtlPWMClockSet(SYSCTL_PWMDIV_64);
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM1);
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
-	GPIOPinTypePWM(GPIO_PORTD_BASE, GPIO_PIN_0);
-	GPIOPinTypePWM(GPIO_PORTD_BASE, GPIO_PIN_1);
-	GPIOPinConfigure(GPIO_PD0_M1PWM0);
-	GPIOPinConfigure(GPIO_PD1_M1PWM1);
-	PWMGenConfigure(PWM1_BASE, PWM_GEN_0, PWM_GEN_MODE_DOWN);
-	PWMGenPeriodSet(PWM1_BASE, PWM_GEN_0, SysCtlClockGet()/(64*PWMfrequency));
-	PWMOutputState(PWM1_BASE, PWM_OUT_0_BIT, true);
-	PWMOutputState(PWM1_BASE, PWM_OUT_1_BIT, true);
-	PWMGenEnable(PWM1_BASE, PWM_GEN_0);
+	//PB5 for motor A
+	//PB4 for motor B
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM0);
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+	GPIOPinTypePWM(GPIO_PORTB_BASE, GPIO_PIN_4);
+	GPIOPinTypePWM(GPIO_PORTB_BASE, GPIO_PIN_5);
+	GPIOPinConfigure(GPIO_PB4_M0PWM2);
+	GPIOPinConfigure(GPIO_PB5_M0PWM3);
+	PWMGenConfigure(PWM0_BASE, PWM_GEN_1, PWM_GEN_MODE_DOWN);
+	PWMGenPeriodSet(PWM0_BASE, PWM_GEN_1, SysCtlClockGet()/(2*PWMfrequency));
+	PWMOutputState(PWM0_BASE, PWM_OUT_2_BIT, true);
+	PWMOutputState(PWM0_BASE, PWM_OUT_3_BIT, true);
+	PWMGenEnable(PWM0_BASE, PWM_GEN_1);
 }
 
 void qeiInit(void) {

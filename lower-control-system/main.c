@@ -1,4 +1,4 @@
-#define HW_TEST 0
+#define HW_TEST 1
 
 #if HW_TEST == 1
 #include "HWtest.h"
@@ -9,12 +9,12 @@
 #include "userLib/pidController.h"
 #include "userLib/movingArray.h"
 
-#define KP_motorA 0.06
+#define KP_motorA 0.05
 #define KI_motorA 0.0
-#define KD_motorA 0.4
-#define KP_motorB 0.06
+#define KD_motorA 0.3
+#define KP_motorB 0.05
 #define KI_motorB 0.0
-#define KD_motorB 0.4
+#define KD_motorB 0.3
 
 volatile float desiredRPM[2] = {0.0,0.0}, currentRPM[2] = {0.0,0.0}, out[2] = {0.0,0.0},bufferDesiredRPM[2] = {0.0,0.0};
 int uartReceiveCount = 0;
@@ -24,27 +24,35 @@ int32_t minPWM = 0;
 int main() {
 	SysCtlClockSet(SYSCTL_SYSDIV_5|SYSCTL_USE_PLL|SYSCTL_XTAL_16MHZ|SYSCTL_OSC_MAIN);
 	uart0Init();
-    maxPWM = SysCtlClockGet()/(PWMfrequency*64);
-
+    maxPWM = SysCtlClockGet()/(PWMfrequency*2);
 #if HW_TEST == 0
 	initPIDController(A,KP_motorA,KI_motorA,KD_motorA);
 	initPIDController(B,KP_motorB,KI_motorB,KD_motorB);
 	motorDirInit();
 	uart5Init();
 	pwmInit();
-	maxPWM = SysCtlClockGet()/(PWMfrequency*64);
+	maxPWM = SysCtlClockGet()/(PWMfrequency*2);
 	qeiInit();
+	setPWM(0,A);
+	setPWM(0,B);
 	IntMasterEnable();
-#elif HW_TEST == 1
-	/*Type hardware test codes here*/
-	//testMotor(A,maxPWM/2);
-	//testMotor(B,maxPWM/2);
-	//testBothEncoder();
-#endif
-
 	while(1) {
 		GraphPlot0(currentRPM[A],desiredRPM[A],currentRPM[B],desiredRPM[B]);
 	}
+#elif HW_TEST == 1
+	/*Type hardware test codes here*/
+	testMotor(A,maxPWM/2);
+	testMotor(B,maxPWM/2);
+	qeiInit();
+	testBothEncoder();
+	while(1) {
+		UART_OutDec(currentRPM[A],0);
+		UARTCharPut(UART0_BASE,',');
+		UART_OutDec(currentRPM[B],0);
+		UARTCharPut(UART0_BASE,0x0D);
+	}
+#endif
+
 }
 
 void Timer0IntHandler(void) {
@@ -77,13 +85,25 @@ void UARTIntHandler(void) {
 void QEI0IntHandler(void) {
 	QEIIntClear(QEI0_BASE, QEI_INTTIMER);
 	currentRPM[A] = movingArrayOut(A,calculateRPM(A));
-	out[A] += PID(A,desiredRPM[A] - currentRPM[A]);
+#if HW_TEST == 0
+	if(desiredRPM[A]!=0) {
+		out[A] += PID(A,desiredRPM[A] - currentRPM[A]);
+	} else {
+		out[A] = 0;
+	}
 	setPWM(out[A],A);
+#endif
 }
 
 void QEI1IntHandler(void) {
 	QEIIntClear(QEI1_BASE, QEI_INTTIMER);
 	currentRPM[B] = movingArrayOut(B,calculateRPM(B));
-	out[B] += PID(B,desiredRPM[B] - currentRPM[B]);
+#if HW_TEST == 0
+	if(desiredRPM[B]!=0) {
+		out[B] += PID(B,desiredRPM[B] - currentRPM[B]);
+	} else {
+		out[B] = 0;
+	}
 	setPWM(out[B],B);
+#endif
 }
