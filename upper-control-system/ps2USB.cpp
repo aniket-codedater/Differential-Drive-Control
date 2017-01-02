@@ -6,14 +6,11 @@
 #include <linux/input.h>
 #include <fcntl.h>
 #include "driveConfig.h"
-<<<<<<< HEAD
-=======
 #include "controlmath.h"
->>>>>>> bd31424da6bb7df6b768ad5dbfc417003e83feb1
 
 pthread_t PS2thread;
 int x = 128, y = 128;
-
+int rx= 128, ry=128;
 bool ps2StatusInterruptEnabled = false;
 
 void (*PS2activated)(void);
@@ -33,18 +30,6 @@ bool startEnabled = false;
 bool selectEnabled = false;
 
 void (*circlePressed)(void);
-/*
-void (*circlePressed)(void){
-	struct unicycleState clkUniRotate;
-	clkUniRotate.vx = 0.0;
-	clkUniRotate.vy = 0.0;
-	clkUniRotate.w = 1.0;
-	struct differentialState clkDiffRotate;
-	clkDiffState = transformDiffState(getDesiredUnicycleState_line(clkUniRotate));
-	transmitDiffState(clkDiffRotate);
-}
-*/
-
 void (*circleReleased)(void);
 void (*squarePressed)(void);
 void (*squareReleased)(void);
@@ -89,12 +74,17 @@ void* ps2Read(void *param) {
   		} else if(ie.code == 1) {
 			y = ie.value;
   		}
+  		if(ie.code == 5) {
+  			ry = ie.value;
+  		}
+		if(ie.code == 2) {
+  			 rx = ie.value;
+  		}
   	} else if(ie.type == 1) {
   		switch(ie.code) {
   			case 288: //triangle (0-1)
   				if(triangleEnabled) {
 					if(ie.value) {
-                        			desiredJunction = 0.0;
 						(*trianglePressed)();
 					} else {
 						(*triangleReleased)();
@@ -104,12 +94,8 @@ void* ps2Read(void *param) {
   			case 289: //Circle
 				if(circleEnabled) {
 					if(ie.value) {
-                        			desiredJunction = 1.0;
-                        			rotatePressed=1;
-						rotateDirection=0;
 						(*circlePressed)();
 					} else {
-					    	rotatePressed=0;
 						(*circleReleased)();
 					}
 				}
@@ -117,7 +103,6 @@ void* ps2Read(void *param) {
   			case 290: //Cross
   				if(crossEnabled) {
 					if(ie.value) {
-                        			desiredJunction = 2.0;
 						(*crossPressed)();
 					} else {
 						(*crossReleased)();
@@ -127,12 +112,8 @@ void* ps2Read(void *param) {
   			case 291: //Square
   				if(squareEnabled) {
 					if(ie.value) {
-                        			desiredJunction = 3.0;
-						rotatePressed=1;
-						rotateDirection=1;
 						(*squarePressed)();
 					} else {
-						rotatePressed=0;
 						(*squareReleased)();
 					}
 				}
@@ -140,10 +121,8 @@ void* ps2Read(void *param) {
   			case 292: //L1
   				if(L1Enabled) {
 					if(ie.value) {
-                        			mode = 1;
 						(*L1Pressed)();
 					} else {
-					    	mode = 0;
 						(*L1Released)();
 					}
 				}
@@ -151,7 +130,6 @@ void* ps2Read(void *param) {
   			case 293: //R1
   				if(R1Enabled) {
 					if(ie.value) {
-                        			desiredJunction = 4.0;
 						(*R1Pressed)();
 					} else {
 						(*R1Released)();
@@ -161,10 +139,8 @@ void* ps2Read(void *param) {
   			case 294: //L2
   				if(L2Enabled) {
 					if(ie.value) {
-                        			mode = 2;
 						(*L2Pressed)();
 					} else {
-					    	mode = 0;
 						(*L2Released)();
 					}
 				}
@@ -249,7 +225,12 @@ int ps2_getX() {
 int ps2_getY() {
 	return y;
 }
-
+int ps2_getRY() {
+	return ry;
+}
+int ps2_getRX(){
+	return rx;
+}
 void enablePS2StatusInterrupt(void (*activated)(void), void (*deactivated)(void)) {
 	ps2StatusInterruptEnabled = true;
 	PS2activated = activated;
@@ -259,14 +240,6 @@ void enablePS2StatusInterrupt(void (*activated)(void), void (*deactivated)(void)
 void enableCircleButton(void (*pressed)(void), void (*released)(void)){
 	circleEnabled = true;
 	circlePressed = pressed;
-	/*struct unicycleState clkUniRotate;
-	clkUniRotate.vx = 0.0;
-	clkUniRotate.vy = 0.0;
-	clkUniRotate.w = 1.0;
-	struct differentialState clkDiffRotate;
-	clkDiffState = transformDiffState(getDesiredUnicycleState_line(clkUniRotate));
-	transmitDiffState(clkDiffRotate);
-*/
 	circleReleased = released;
 }
 

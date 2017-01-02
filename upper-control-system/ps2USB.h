@@ -5,20 +5,13 @@
 
 #include "driveConfig.h"
 
-extern bool rotatePressed;
-extern bool rotateDirection;
-extern int mode;
-extern float desiredJunction;
-extern float lastJunction;
-
-
 int initPS2(void);
 int initPS2(char* device);
 void stopPS2();
 int ps2_getX(void);
 int ps2_getY(void);
-
-
+int ps2_getRY();
+int ps2_getRX();
 
 void enableCircleButton(void (*pressed)(void), void (*released)(void));
 void enableSquareButton(void (*pressed)(void), void (*released)(void));

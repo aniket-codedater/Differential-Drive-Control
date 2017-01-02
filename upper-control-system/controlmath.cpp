@@ -3,8 +3,6 @@
 #include "pidController.h"
 #include <stdio.h>
 
-bool append = false;
-
 float sigmoid(float x) {
 	return ((1/(1+exp(-x))) - 0.5) * 2;
 }
@@ -23,6 +21,24 @@ float normalizeAngle(float degree) {
 
 struct point rotationalTransform(struct point point_, float theta) {
 	return rotationalTransform(point_.x, point_.y, theta);
+}
+
+float majorAngleFilter(float err) {
+	if(err>0) {
+		if(err<=180) {
+			return err;
+		}
+		else {
+			return err-360;
+		}
+	} else {
+		if(err>=-180) {
+			return err;
+		}
+		else {
+			return err+360;
+		}
+	}
 }
 
 struct point rotationalTransform(float x, float y, float theta){
@@ -45,10 +61,8 @@ struct differentialState rpmLimiter(struct differentialState state) {
 		factor -= 0.1;
 		state.leftRPM /= factor;	
 		state.rightRPM /= factor;	
-		append = true;
 		return state;
 	}
-	append = false;
 	return state;
 }
 
@@ -70,26 +84,20 @@ struct unicycleState velocityLimiter(struct unicycleState state) {
 
 struct differentialState transformUniToDiff(struct unicycleState uniState) {
 	struct differentialState diffState;
-    	float v = sqrt(uniState.vx * uniState.vx + uniState.vy * uniState.vy);
-	uniState = velocityLimiter(uniState);
+   	float v = sqrt(uniState.vx * uniState.vx + uniState.vy * uniState.vy);
 	float w = fabs((L*uniState.w * 60.0) / (4 * wheelRadius * PI));	
 	if(uniState.vy<0) {
 		v = -v;
-		w = -w;
-		uniState.w = -uniState.w;
 	}
 	//using the kinematics equations
 	float vleft = (2*v - L*uniState.w) / (2 * wheelRadius);
 	float vright = (2*v + L*uniState.w)/(2 * wheelRadius);
 	diffState.rightRPM = (vright * 60.0) / (2.0 * PI);
 	diffState.leftRPM = (vleft * 60.0) / (2.0 * PI);
-	diffState = rpmLimiter(diffState);	
-	//If the RPM hits maximum limit, the heading correction rpm should be applied explicitly because if heading correction done before is scaled to almost neglibile
-	if(append) {
-		(vleft > vright) ? diffState.rightRPM = diffState.rightRPM - 2*w : diffState.leftRPM = diffState.leftRPM - 2*w;  
-	}
 	return rpmLimiter(diffState);
 }
+
+
 
 
 

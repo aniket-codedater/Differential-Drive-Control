@@ -1,10 +1,28 @@
 #ifndef ps2_2k17
 #define ps2_2k17
 
+/*
+* This header consists of the PS2 configuration for Robocon 2017
+* The key mapping is as follows :
+	Triangle:
+		    * Mode 0 : Shoot enable *
+	Cross:
+		    * Mode 0 : Load enable*
+	Circle:
+		    * Mode 0 : Increase plane angle *
+		+R1 * Mode 0 : Decrease plane angle *
+	Square:
+		    * Mode 0 : Increase thrower position *
+		+R1 * Mode 0 : Decrease thrower position *
+	R2 functions :
+		    * Mode 0 : Increase RPM *
+		+R1 * Mode 0 : Decrease RPM *
+*/
+
+
 #include "driveConfig.h"
 
 extern void transmitDiffState(struct differentialState desiredDiffState);
-
 extern void (*circlePressed)(void);
 extern void (*circleReleased)(void);
 extern void (*squarePressed)(void);
@@ -33,18 +51,26 @@ extern void (*selectReleased)(void);
 extern bool rotatePressed;
 extern bool rotateDirection;
 extern int mode;
-extern float desiredJunction;
-extern float lastJunction;
+extern int desiredJunction;
+extern int lastJunction;
 extern int curMode;
 extern int preMode;
+extern float headingOffset;
+extern int shoot, load, planeAngle;
+
+enum {noChangeRPM,increaseRPM,decreaseRPM,initialRPM};
+enum {noChangePos,increasePos,decreasePos,initialPos};
+enum {noChangeAngle,increaseAngle,decreaseAngle,initialAngle};
 
 int getMode(void);
 void modeChange(void);
-void rotateBot(void);
+struct unicycleState rotateBot(void);
 void initPS2_2k17(void);
-void rotateClk(void);
-void rotateAnticlk(void);
-
+struct unicycleState rotateClk(void);
+struct unicycleState rotateAnticlk(void);
+void resetPS2_2k17(void);
+void rotateCheck(void);
+void transmitMechanismControl_Packet();
 #endif
 
 

@@ -15,6 +15,7 @@ float sigmoid(float x);
 float degreeToRadian(float degree);
 float radianToDegree(float radian);
 float normalizeAngle(float degree);
+float majorAngleFilter(float err);
 struct point rotationalTransform(struct point point_, float theta);
 struct point rotationalTransform(float x_, float y_, float theta);
 struct differentialState transformUniToDiff(struct unicycleState unistate); //alpha is the angular offset given to the robot

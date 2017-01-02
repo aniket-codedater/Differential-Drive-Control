@@ -2,7 +2,7 @@
 #define LSA08
 
 struct lineSensor {int address; int uartPort; float distanceFromCenter; 
-			float DAngle; float SAngle; int junctionPin; int UARTPin;};
+			float DAngle; float SAngle; int junctionPin; int UARTPin; int NANDoutPin;};
 
 char getLineSensorData(struct lineSensor ls);
 signed int readLineSensor(struct lineSensor ls);
