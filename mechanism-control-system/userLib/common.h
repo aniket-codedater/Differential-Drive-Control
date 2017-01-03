@@ -26,10 +26,10 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 
 #define SYSCTLPERIPH_THROW_MOTOR		 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 #define THROW_MOTOR_PORT 					GPIO_PORTA_BASE
-#define TM1 								GPIO_PIN_6
-#define TM2 								GPIO_PIN_7
-#define TM1_MASK 							0b01000000
-#define TM2_MASK 							0b10000000
+#define TM1 								GPIO_PIN_7
+#define TM2 								GPIO_PIN_6
+#define TM1_MASK 							0b10000000
+#define TM2_MASK 							0b01000000
 #define SYSCTLPERIPH_THROW_ENC				SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
 #define THROW_ENCODER_PORT					GPIO_PORTF_BASE
 #define THROW_ENCODER_CHANNELA				GPIO_PIN_0
@@ -40,10 +40,10 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 
 #define SYSCTLPERIPH_ANGLE_MOTOR 			SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
 #define ANGLE_MOTOR_PORT 					GPIO_PORTE_BASE
-#define AM1 								GPIO_PIN_2
-#define AM2 								GPIO_PIN_3
-#define AM1_MASK 							0b00000100
-#define AM2_MASK 							0b00001000
+#define AM1 								GPIO_PIN_3
+#define AM2 								GPIO_PIN_2
+#define AM1_MASK 							0b00001000
+#define AM2_MASK 							0b00000100
 #define SYSCTLPERIPH_ANGLE_ENC 				SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
 #define ANGLE_ENCODER_PORT					GPIO_PORTF_BASE
 #define ANGLE_ENCODER_CHANNELA				GPIO_PIN_2

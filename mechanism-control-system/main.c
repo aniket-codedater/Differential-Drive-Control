@@ -53,9 +53,6 @@ int main() {
 		UARTCharPut(UART0_BASE,';');
 		UART_OutDec(throw_counter,0);
 		UARTCharPut(UART0_BASE,0x0D);
-		if(UARTCharGetNonBlocking(UART0_BASE) == 'a') {
-			cmd_throw();
-		}
 	}
 }
 

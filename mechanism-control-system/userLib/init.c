@@ -1,4 +1,5 @@
 #include "init.h"
+#include "../shoot.h"
 
 void motorDirInit(int i) {
 	if(i == throw_motor) {
@@ -40,7 +41,7 @@ void qeiInit(void) {
 	QEIIntDisable(QEI0_BASE,QEI_INTERROR | QEI_INTDIR | QEI_INTTIMER | QEI_INTINDEX);
 	QEIConfigure(QEI0_BASE, (QEI_CONFIG_CAPTURE_A_B  | QEI_CONFIG_NO_RESET 	| QEI_CONFIG_QUADRATURE | QEI_CONFIG_NO_SWAP), 0xFFFFFFFF);
 	QEIEnable(QEI0_BASE);
-	QEIPositionSet(QEI0_BASE, 1);
+	QEIPositionSet(QEI0_BASE, STEP);
 }
 
 void timerInit(void) {
