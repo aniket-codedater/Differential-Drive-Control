@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include "angle.h"
 #include "shoot.h"
-
+#include "load.h"
 int32_t maxPWM_throw = 10,maxPWM = 0;							//Random maxPWM value
 int32_t maxPWM_angle = 10;							//Random maxPWM value
 int32_t minPWM_throw = 0;						//Minimum PWM value for the throw motor to move
@@ -14,7 +14,7 @@ int32_t minPWM_angle = 0;						//Minimum PWM value for the angle motor to move
 volatile float shootPercent = 1.0;
 volatile int shoot = 0,load = 0,planeAngle = 0;			//UART packet value holders of the mechanism
 volatile int8_t enablePositionChange = 0;
-
+bool loadEnable = false;
 //Interrupt routines prototype
 void Timer0IntHandler(void);
 void ISR_ANGLE(void);
@@ -27,6 +27,9 @@ int main() {
 	IntMasterEnable();
 	uart0Init();
 	UARTFIFODisable(UART0_BASE);
+	IntEnable(INT_UART0);
+	UARTIntEnable(UART0_BASE, UART_INT_RX);
+	UART_TransmitString("System started.\r\n",0);
 	uart5Init();
 	maxPWM = SysCtlClockGet()/(PWMfrequency*8);
 	maxPWM_throw = maxPWM;
@@ -39,6 +42,7 @@ int main() {
 	motorDirInit(throw_motor);
 	qeiInit();
 	encoderInit(ISR_ANGLE,angle_motor);
+	loadInit();
 	timerInit();
 	while(1) {
 		UART_OutDec(angle_counter,0);
@@ -52,24 +56,26 @@ int main() {
 		UART_OutDec(maxPWM_throw,0);
 		UARTCharPut(UART0_BASE,';');
 		UART_OutDec(throw_counter,0);
-		UARTCharPut(UART0_BASE,0x0D);
+		UART_TransmitString("\r\n",0);
 	}
 }
 
 void Timer0IntHandler(void) {
 	TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
 	throw_counter = QEIPositionGet(QEI0_BASE);
-	if(enablePositionChange == 0) {
-		shootDisc();
-	} else {
-		if(enablePositionChange == 1) {			//Clock
-			setPWM(minPWM_throw,throw_motor);
-		} else if(enablePositionChange == -1) {	//Anticlock
-			setPWM(-minPWM_throw,throw_motor);
+	if(loadEnable == false) {
+		if(enablePositionChange == 0) {
+			shootDisc();
+		} else {
+			if(enablePositionChange == 1) {			//Clock
+				setPWM(minPWM_throw,throw_motor);
+			} else if(enablePositionChange == -1) {	//Anticlock
+				setPWM(-minPWM_throw,throw_motor);
+			}
+			des_throw_counter = throw_counter;
 		}
-		des_throw_counter = throw_counter;
+		changeAngle();
 	}
-	changeAngle();
 }
 
 void UARTIntHandler(void) {
@@ -148,7 +154,18 @@ void UARTIntHandler(void) {
 			triggered=0;
 		}
 	} else {
-		/*Loading routine*/
+		loadEnable = true;
+		int confidenceCheck = 0;
+		while(confidenceCheck < LOAD_POSITION_CONFIDENCE) {
+			throw_counter = QEIPositionGet(QEI0_BASE);
+			if(moveThrower(loadPoint()) == 1) {
+				confidenceCheck++;
+			} else {
+				confidenceCheck = 0;
+			}
+		}
+		reload();
+		loadEnable = false;
 	}
 }
 
@@ -158,5 +175,25 @@ void ISR_ANGLE(void) {
 		angle_counter++;
 	} else {
 		angle_counter--;
+	}
+}
+
+void UART0Handler(void) {
+	uint32_t ui32Status;
+	ui32Status = UARTIntStatus(UART0_BASE, true); //get interrupt status
+	UARTIntClear(UART0_BASE, ui32Status); //clear the asserted interrupts
+	char char_data = UARTCharGet(UART0_BASE);
+	if(char_data == 'u') {
+		reload_manual(loader1,up);
+	} else if(char_data == 'd') {
+		reload_manual(loader1,down);
+	} else if(char_data == 'r') {
+		if(reload() == -1) {
+			UART_TransmitString("Err :: Limit error\r\n",0);
+		} else {
+			UART_TransmitString("Loading :: \r\n",0);
+		}
+	} else if(char_data == 'b') {
+		bring_system_to_0_from_bottom(loader1);
 	}
 }

@@ -39,7 +39,7 @@ void qeiInit(void) {
 	GPIOPinTypeQEI(THROW_ENCODER_PORT, THROW_ENCODER_CHANNELA |  THROW_ENCODER_CHANNELB);
 	QEIDisable(QEI0_BASE);
 	QEIIntDisable(QEI0_BASE,QEI_INTERROR | QEI_INTDIR | QEI_INTTIMER | QEI_INTINDEX);
-	QEIConfigure(QEI0_BASE, (QEI_CONFIG_CAPTURE_A_B  | QEI_CONFIG_NO_RESET 	| QEI_CONFIG_QUADRATURE | QEI_CONFIG_NO_SWAP), 0xFFFFFFFF);
+	QEIConfigure(QEI0_BASE, (QEI_CONFIG_CAPTURE_A_B  | QEI_CONFIG_NO_RESET 	| QEI_CONFIG_QUADRATURE | QEI_CONFIG_SWAP), 0xFFFFFFFF);
 	QEIEnable(QEI0_BASE);
 	QEIPositionSet(QEI0_BASE, STEP);
 }
@@ -93,6 +93,7 @@ void pwmInit(void) {
 	PWMGenPeriodSet(PWM1_BASE, PWM_GEN_0, SysCtlClockGet()/(8*PWMfrequency));
 	PWMOutputState(PWM1_BASE, PWM_OUT_0_BIT, true);
 	PWMGenEnable(PWM1_BASE, PWM_GEN_0);
+
 	//Throw motor PE5
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);//enable GPIOD port
 	GPIOPinTypePWM(GPIO_PORTE_BASE, GPIO_PIN_5);//giving output of pwm at PD0
@@ -101,4 +102,5 @@ void pwmInit(void) {
 	PWMGenPeriodSet(PWM1_BASE, PWM_GEN_1, SysCtlClockGet()/(8*PWMfrequency));//sets the period of pwm generator
 	PWMOutputState(PWM1_BASE, PWM_OUT_3_BIT, true);//enables pwm output
 	PWMGenEnable(PWM1_BASE, PWM_GEN_1);//enables the timer counter of pwm generator block
+
 }
