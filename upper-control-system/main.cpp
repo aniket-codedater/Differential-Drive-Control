@@ -277,7 +277,7 @@ void setPWM(float pwm, int i) {
 			if(pwm < minPWM) {
 				pwm = minPWM;
 			}
-			softPwmWrite(heightMotorPWM,pwm);
+			softPwmWrite(heightMotorPWM,5);			//Low PWM because for going downwards, gravity accelerates it
 			digitalWrite(heightMotorPin1,1);
 			digitalWrite(heightMotorPin2,0);		
 		} else if (pwm < 0) {
@@ -300,25 +300,27 @@ void timerHandler() {
 //		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_mode());
 //		transmitDiffState(desiredDiffState);
 //	 	printf("%d %d  \n",desiredDiffState.leftRPM,desiredDiffState.rightRPM,getHeading());
+
 /*  Height control */
 //		printf("value = %d ?%d",encoderheight->value,);
-//		right_analog_stick = ps2_getRY();
+		right_analog_stick = ps2_getRY();
 //		if(right_analog_stick == 128 && prev_right_analog_stick != 128) {
 //			desiredHeight = encoderheight->value;
 //		}
-//		if(right_analog_stick == 128) {
-//			digitalWrite(27,0);
+		if(right_analog_stick == 128) {
+			digitalWrite(29,1);
 //			float heightError = (encoderheight->value)- desiredHeight ;
 //			float out = PID(heightError,heightControl);
-//			setPWM(0,heightControl);
-//			printf("0 :: ");						
-//		} else {
-//			digitalWrite(27,1);
-//			setPWM((ps2_getRY()-128)/2.0,heightControl);
-//			printf("1 :: ");						
-//		}
-//		prev_right_analog_stick = right_analog_stick;
-/*odometry*/
+			setPWM(0,heightControl);
+			printf("0 :: \n");						
+		} else {
+			digitalWrite(29,0);
+			setPWM((ps2_getRY()-128)/2.0,heightControl);
+			printf("1 :: \n");						
+		}
+		prev_right_analog_stick = right_analog_stick;
+
+/*Odometry*/
 //		distTravelled=getDistTravelled();
 //		printf("%d  %d\n",encoder1->value,encoder2->value);
 //		printf("x=%f,y=%f,phi=%f \n",getX(distTravelled),getY(distTravelled),180.0*getPhi()/pi);
@@ -414,15 +416,15 @@ int main() {
 
 //Height control pin init
 //	encoderheight = setupencoder(2,3);	
-//	pinMode(heightMotorPin1,OUTPUT);
-//	pinMode(heightMotorPin2,OUTPUT);
-//	softPwmCreate(heightMotorPWM,0,255);
-//	pinMode(29,OUTPUT);
-//	digitalWrite(29,0);
-//	digitalWrite(heightMotorPin1,0);
-//	digitalWrite(heightMotorPin2,0);
-//	maxPWM = 128;
-//	minPWM = 5;
+	pinMode(heightMotorPin1,OUTPUT);
+	pinMode(heightMotorPin2,OUTPUT);
+	softPwmCreate(heightMotorPWM,0,255);
+	pinMode(29,OUTPUT);
+	digitalWrite(29,1);
+	digitalWrite(heightMotorPin1,0);
+	digitalWrite(heightMotorPin2,0);
+	maxPWM = 128;
+	minPWM = 5;
 	initTimer(1000000/PIDfrequency, &timerHandler);
 	while(1) {
 		sleep(1);
