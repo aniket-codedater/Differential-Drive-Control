@@ -20,10 +20,14 @@ void Timer0IntHandler(void);
 void ISR_ANGLE(void);
 void UARTIntHandler(void);
 
+//Debugging variables
+int printer;
+long int printer_step,printer_first,printer_second;
+
 int main() {
 	SysCtlClockSet(SYSCTL_SYSDIV_5|SYSCTL_USE_PLL|SYSCTL_XTAL_16MHZ|SYSCTL_OSC_MAIN);
-	initPIDController(throw_motor,0.5,0.0,0.0); //0.16
-	initPIDController(angle_motor,250.0,0.0,0.0);
+	initPIDController(throw_motor,0.08,0.0,0.0); //0.16
+	initPIDController(angle_motor,9.0,0.0,0.0);
 	IntMasterEnable();
 	uart0Init();
 	UARTFIFODisable(UART0_BASE);
@@ -34,8 +38,8 @@ int main() {
 	maxPWM = SysCtlClockGet()/(PWMfrequency*8);
 	maxPWM_throw = maxPWM;
 	maxPWM_angle = maxPWM;
-	minPWM_throw = maxPWM/30.0;
-	minPWM_angle = 0;
+	minPWM_throw = maxPWM/20.0;
+	minPWM_angle = maxPWM/20.0;
 	maxPWM_throw = maxPWM * shootPercent;	// 0.7 times for middle pole at 90 degree
 	pwmInit();
 	motorDirInit(angle_motor);
@@ -47,15 +51,25 @@ int main() {
 	while(1) {
 		UART_OutDec(angle_counter,0);
 		UARTCharPut(UART0_BASE,';');
- 	 	UART_OutDec(shoot,0);
+// 	 	UART_OutDec(shoot,0);
+//		UARTCharPut(UART0_BASE,';');
+		UART_OutDec(des_angle_counter,0);
 		UARTCharPut(UART0_BASE,';');
-		UART_OutDec(load,0);
-		UARTCharPut(UART0_BASE,';');
-		UART_OutDec(planeAngle,0);
-		UARTCharPut(UART0_BASE,';');
-		UART_OutDec(maxPWM_throw,0);
+//		UART_OutDec(planeAngle,0);
+//		UARTCharPut(UART0_BASE,';');
+		UART_OutDec(printer,0);
+        UARTCharPut(UART0_BASE,';');
+        UART_OutDec(des_throw_counter,0);
 		UARTCharPut(UART0_BASE,';');
 		UART_OutDec(throw_counter,0);
+		UARTCharPut(UART0_BASE,';');
+        UART_OutDec(printer,0);
+        UARTCharPut(UART0_BASE,';');
+        UART_OutDec(printer_step,0);
+        UARTCharPut(UART0_BASE,';');
+        UART_OutDec(printer_first,0);
+        UARTCharPut(UART0_BASE,';');
+        UART_OutDec(printer_second,0);
 		UART_TransmitString("\r\n",0);
 	}
 }
@@ -65,14 +79,15 @@ void Timer0IntHandler(void) {
 	throw_counter = QEIPositionGet(QEI0_BASE);
 	if(loadEnable == false) {
 		if(enablePositionChange == 0) {
-			shootDisc();
+            shootDisc();
 		} else {
 			if(enablePositionChange == 1) {			//Clock
 				setPWM(minPWM_throw,throw_motor);
 			} else if(enablePositionChange == -1) {	//Anticlock
 				setPWM(-minPWM_throw,throw_motor);
 			}
-			des_throw_counter = throw_counter;
+			updateDesiredStage();
+			updateFirstStage();
 		}
 		changeAngle();
 	}

@@ -28,5 +28,6 @@ long int loadPoint(void);
 int8_t moveThrower(long int desiredCount);
 void shootDisc(void);
 void cmd_throw(void);
-
+void updateFirstStage(void);
+void updateDesiredStage(void);
 #endif /* SHOOT_H_ */

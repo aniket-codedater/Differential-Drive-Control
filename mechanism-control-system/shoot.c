@@ -6,12 +6,23 @@
  */
 #include "shoot.h"
 #include <math.h>
-//10150 maxpWM/30 0.1
+
 int shootComplete = 1,triggered = 0;
 long int des_throw_counter = STEP, FIRST_STAGE = STEP/THROW_REVOLUTION, SECOND_STAGE = STEP/THROW_REVOLUTION * 1;
 volatile long int throw_counter = STEP;
 int steady_state_counter = 0;
 bool steady = false;
+
+//Debugger variables
+extern long int printer_step,printer_first,printer_second;
+
+void updateFirstStage(void) {
+    FIRST_STAGE = des_throw_counter - STEP + STEP/THROW_REVOLUTION;
+}
+
+void updateDesiredStage(void) {
+    des_throw_counter = throw_counter;
+}
 
 long int loadPoint(void) {
 	int factor = round(throw_counter / TICK_PER_REV) ;
@@ -40,6 +51,9 @@ int8_t moveThrower(long int desiredCount) {
 }
 
 void shootDisc(void) {
+    printer_step = STEP;
+    printer_first = FIRST_STAGE;
+    printer_second = SECOND_STAGE;
 	if(throw_counter <= FIRST_STAGE) {
 		shootComplete = 0;
 		setPWM(maxPWM_throw,throw_motor);
@@ -59,7 +73,7 @@ void cmd_throw(void) {
 	}
 	des_throw_counter += STEP;
 	FIRST_STAGE += STEP;
-	if(des_throw_counter < 0) {
+	if(des_throw_counter < 0) {             //Handling variable overflow
 		des_throw_counter = STEP;
 		FIRST_STAGE = des_throw_counter/THROW_REVOLUTION;
 	}
