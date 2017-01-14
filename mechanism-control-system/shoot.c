@@ -25,7 +25,7 @@ void updateDesiredStage(void) {
 }
 
 long int loadPoint(void) {
-	int factor = round(throw_counter / TICK_PER_REV) ;
+	int factor = round(des_throw_counter / TICK_PER_REV) ;
 	return TICK_PER_REV*factor;
 }
 
@@ -50,20 +50,24 @@ int8_t moveThrower(long int desiredCount) {
 	return 0;
 }
 
-void shootDisc(void) {
+void shootDisc(bool shootState) {
     printer_step = STEP;
     printer_first = FIRST_STAGE;
     printer_second = SECOND_STAGE;
-	if(throw_counter <= FIRST_STAGE) {
-		shootComplete = 0;
-		setPWM(maxPWM_throw,throw_motor);
-	}
-	else if(throw_counter>FIRST_STAGE && throw_counter<=(FIRST_STAGE  + SECOND_STAGE)) {
-		shootComplete = 0;
-		setPWM(minPWM_throw,throw_motor);
-	} else {
-		shootComplete = moveThrower(des_throw_counter);
-	}
+    if(shootState == true) {
+        if(throw_counter <= FIRST_STAGE) {
+            shootComplete = 0;
+            setPWM(maxPWM_throw,throw_motor);
+        }
+        else if(throw_counter>FIRST_STAGE && throw_counter<=(FIRST_STAGE  + SECOND_STAGE)) {
+            shootComplete = 0;
+            setPWM(minPWM_throw,throw_motor);
+        } else {
+            shootComplete = moveThrower(loadPoint());
+        }
+    } else {
+       moveThrower(des_throw_counter);
+    }
 }
 
 void cmd_throw(void) {

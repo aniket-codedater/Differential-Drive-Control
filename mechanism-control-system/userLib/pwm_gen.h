@@ -50,12 +50,12 @@ NOTE :- pins 4 to 7 on both modules are not available for use
 #define M0PWM1 11
 #define M0PWM2 12
 #define M0PWM3 13
-/*
+
 #define M0PWM4 14
 #define M0PWM5 15
 #define M0PWM6 16
 #define M0PWM7 17
-*/
+
 #define M1PWM0 20
 #define M1PWM1 21
 #define M1PWM2 22

@@ -124,7 +124,7 @@ void config_pwm(uint8_t MPWM,uint8_t count_dir,uint8_t pwm_frequency)
 			
 			case 13 :
 			{
-			SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM0);
+/*			SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM0);
 			SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
 			GPIOPinTypePWM(GPIO_PORTB_BASE, GPIO_PIN_5);
 			GPIOPinConfigure(GPIO_PB5_M0PWM3);
@@ -135,7 +135,7 @@ void config_pwm(uint8_t MPWM,uint8_t count_dir,uint8_t pwm_frequency)
 			else if(count_dir == COUNT_DOWN)
 			{
 				PWMGenConfigure(PWM0_BASE, PWM_GEN_1, PWM_GEN_MODE_DOWN);
-			}
+			}*/
 			PWMGenPeriodSet(PWM0_BASE, PWM_GEN_1, ticks_for_pwm_frequency);
 			}
 			break;

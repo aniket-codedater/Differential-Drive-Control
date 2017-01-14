@@ -26,7 +26,7 @@ long int printer_step,printer_first,printer_second;
 
 int main() {
 	SysCtlClockSet(SYSCTL_SYSDIV_5|SYSCTL_USE_PLL|SYSCTL_XTAL_16MHZ|SYSCTL_OSC_MAIN);
-	initPIDController(throw_motor,0.08,0.0,0.0); //0.16
+	initPIDController(throw_motor,0.04,0.0,0.0); //0.08
 	initPIDController(angle_motor,9.0,0.0,0.0);
 	IntMasterEnable();
 	uart0Init();
@@ -79,7 +79,7 @@ void Timer0IntHandler(void) {
 	throw_counter = QEIPositionGet(QEI0_BASE);
 	if(loadEnable == false) {
 		if(enablePositionChange == 0) {
-            shootDisc();
+            shootDisc(!shootComplete);
 		} else {
 			if(enablePositionChange == 1) {			//Clock
 				setPWM(minPWM_throw,throw_motor);
@@ -170,16 +170,16 @@ void UARTIntHandler(void) {
 		}
 	} else {
 		loadEnable = true;
+//        reload();
 		int confidenceCheck = 0;
 		while(confidenceCheck < LOAD_POSITION_CONFIDENCE) {
 			throw_counter = QEIPositionGet(QEI0_BASE);
-			if(moveThrower(loadPoint()) == 1) {
+			if(moveThrower(des_throw_counter) == 1) {
 				confidenceCheck++;
 			} else {
 				confidenceCheck = 0;
 			}
 		}
-		reload();
 		loadEnable = false;
 	}
 }
