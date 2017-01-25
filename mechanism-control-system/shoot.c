@@ -10,7 +10,7 @@
 int shootComplete = 1,triggered = 0;
 long int des_throw_counter = STEP, FIRST_STAGE = STEP/THROW_REVOLUTION, SECOND_STAGE = STEP/THROW_REVOLUTION * 1;
 volatile long int throw_counter = STEP;
-int steady_state_counter = 0;
+unsigned int steady_state_counter = 0, zcd_counter = 0;
 bool steady = false;
 
 //Debugger variables
@@ -32,26 +32,38 @@ long int loadPoint(void) {
 int8_t moveThrower(long int desiredCount) {
 	float error = (desiredCount-throw_counter);
 	float pwm = PID(throw_motor,error);
+	printer_step = error;
 	if(absolute(error)<=SHOOT_TOLERANCE)
 	{
+	    zcd_counter++;
 		setPWM(0,throw_motor);
 		if(steady == false) {
 			steady_state_counter++;
 		}
 		if(steady_state_counter > STEADY_STATE_CONFIDENCE) {
 			steady = true;
+			zcd_counter = 0;
+			//UART_TransmitString("STEADY COUNTER stabilized\r\n",0);
 			return 1;
 		}
 	} else {
-		steady = false;
+	    steady = false;
 		steady_state_counter = 0;
 		setPWM(pwm,throw_motor);
+	}
+	if(zcd_counter > ZCD_CONFIDENCE) {
+	    /*zcd_counter = 0;
+        setPWM(0,throw_motor);
+        SysCtlDelay(4000000);
+        setThrowerPosition(getThrowerPosition());
+	    UART_TransmitString("ZCD stabilized\r\n",0);
+        return 1;*/
 	}
 	return 0;
 }
 
 void shootDisc(bool shootState) {
-    printer_step = STEP;
+    //printer_step = STEP;
     printer_first = FIRST_STAGE;
     printer_second = SECOND_STAGE;
     if(shootState == true) {
@@ -63,7 +75,7 @@ void shootDisc(bool shootState) {
             shootComplete = 0;
             setPWM(minPWM_throw,throw_motor);
         } else {
-            shootComplete = moveThrower(loadPoint());
+            shootComplete = moveThrower(des_throw_counter); //moveThrower(loadPoint());
         }
     } else {
        moveThrower(des_throw_counter);
@@ -81,4 +93,5 @@ void cmd_throw(void) {
 		des_throw_counter = STEP;
 		FIRST_STAGE = des_throw_counter/THROW_REVOLUTION;
 	}
+    steady_state_counter = 0;
 }

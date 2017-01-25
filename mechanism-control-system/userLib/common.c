@@ -1,6 +1,7 @@
 #include "common.h"
+
 extern int printer;
-void setPWM(int32_t pwm,int i) {
+void setPWM(float pwm,int i) {
 	if(i == throw_motor) {
 		if(pwm > maxPWM_throw) {
 			pwm = maxPWM_throw;
@@ -154,3 +155,4 @@ void UART_OutDec(int x, int i) {
 	}
 	UART_OutUDec(x, i);
 }
+

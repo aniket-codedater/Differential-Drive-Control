@@ -31,10 +31,10 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 /* Throwing macros*/
 #define SYSCTLPERIPH_THROW_MOTOR		 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA)
 #define THROW_MOTOR_PORT 					GPIO_PORTA_BASE
-#define TM1 								GPIO_PIN_7
-#define TM2 								GPIO_PIN_6
-#define TM1_MASK 							0b10000000
-#define TM2_MASK 							0b01000000
+#define TM1 								GPIO_PIN_6
+#define TM2 								GPIO_PIN_7
+#define TM1_MASK 							0b01000000
+#define TM2_MASK 							0b10000000
 #define SYSCTLPERIPH_THROW_ENC				SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF)
 #define THROW_ENCODER_PORT					GPIO_PORTF_BASE
 #define THROW_ENCODER_CHANNELA				GPIO_PIN_0
@@ -52,8 +52,8 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 #define AM2_MASK 							0b00001000
 #define SYSCTLPERIPH_ANGLE_ENC 				SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF)
 #define ANGLE_ENCODER_PORT					GPIO_PORTF_BASE
-#define ANGLE_ENCODER_CHANNELA				GPIO_PIN_2
-#define ANGLE_ENCODER_CHANNELB				GPIO_PIN_3
+#define ANGLE_ENCODER_CHANNELA				GPIO_PIN_3
+#define ANGLE_ENCODER_CHANNELB				GPIO_PIN_2
 //PWM pin for angle motor  PD0
 
 /* Loading macros */
@@ -100,10 +100,16 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 #define LIMIT2_SWITCH_PIN1					GPIO_PIN_6
 #define LIMIT2_SWITCH_PIN2					GPIO_PIN_7
 
-void setPWM(int32_t pwm,int i);
+void setPWM(float pwm,int i);
 unsigned absolute(float x);
 void UART_TransmitString(char* string,int i);
 void UART_OutDec(int x, int i);
+
+//Parameter changer
+extern float setShootPercent(float i);
+extern int setPlaneAngle(int i);
+extern long int getThrowerPosition(void);
+extern void setThrowerPosition(long int i);
 
 #endif
 

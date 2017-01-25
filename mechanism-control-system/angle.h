@@ -21,7 +21,6 @@
 extern long int angle_counter;
 extern long int des_angle_counter;
 
-int convertAngleToTicks(float angle);
 void changeAngle(void);
 void cmd_angle(int angle);
 
