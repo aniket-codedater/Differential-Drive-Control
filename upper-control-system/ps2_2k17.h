@@ -57,21 +57,26 @@ extern int curMode;
 extern int preMode;
 extern float headingOffset;
 extern int shoot, load, planeAngle;
-
+extern float rpmpercent1;
 enum {noChangeRPM,increaseRPM,decreaseRPM,initialRPM};
 enum {noChangePos,increasePos,decreasePos,initialPos};
 enum {noChangeAngle,increaseAngle,decreaseAngle,initialAngle};
 
 int getMode(void);
 void modeChange(void);
+bool mechanismState();
+int getMechanismMode();
 struct unicycleState rotateBot(void);
 void initPS2_2k17(void);
 struct unicycleState rotateClk(void);
 struct unicycleState rotateAnticlk(void);
 void resetPS2_2k17(void);
 void rotateCheck(void);
-void transmitMechanismControl_Packet();
+void transmitMechanismControl();
 #endif
+
+
+
 
 
 

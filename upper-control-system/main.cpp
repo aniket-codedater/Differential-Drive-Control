@@ -50,7 +50,7 @@ bool rotateWasPressed = false;
 
 /* Tiva packet variables */
 extern int shoot,load,planeAngle;
-
+//extern float rpmpercent1;
 int prev_right_analog_stick = 128, right_analog_stick = 128;
 int desiredHeight = 0;
 int maxPWM = 0, minPWM = 0;
@@ -65,40 +65,39 @@ float lsB_error = 0, lsB_prev_error = 0;
 struct encoder *encoder1;
 struct encoder *encoder2;
 float distTravelled=0.0;
-
 int rpiPort;
 
 void reset() {
-	resetDriveConfig();
-	resetAutomation();
-	resetEncoder(*encoderheight);
-	resetOdometry(*encoder1,*encoder2);
-	resetPS2_2k17();
-	resetPIDvar(headingControl);
-	resetPIDvar(lineControl_fw);
-	resetPIDvar(lineControl_bw);
-	resetPIDvar(heightControl);
-	resetPIDvar(odometryControl);
+//	resetDriveConfig();
+//	resetAutomation();
+//	resetEncoder(encoderheight);
+//	resetOdometry(encoder1,encoder2);
+//	resetPS2_2k17();
+//	resetPIDvar(headingControl);
+//	resetPIDvar(lineControl_fw);
+//	resetPIDvar(lineControl_bw);
+//	resetPIDvar(heightControl);
+//	resetPIDvar(odometryControl);
 
 /* Driving variables reset */	
-	desiredHeading = 0.0;
-	headingCorrection = 0;
-	headingError = 0;
-	prev_desiredPhi = 0;
-	prev_vy = 0;
+//	desiredHeading = 0.0;
+//	headingCorrection = 0;
+//	headingError = 0;
+//	prev_desiredPhi = 0;
+//	prev_vy = 0;
 /* PS2 variables  reset */
-	rotateWasPressed = false;
+//	rotateWasPressed = false;
 /* Tiva packet variables reset */
-	prev_right_analog_stick = 128;
-	right_analog_stick = 128;
-	desiredHeight = 0;
+//	prev_right_analog_stick = 128;
+//	right_analog_stick = 128;
+//	desiredHeight = 0;
 /* Line Sensor variables reset */
-	lsF_error = 0;
-	lsF_prev_error = 0;
-	lsB_error = 0;
-	lsB_prev_error = 0;
+//	lsF_error = 0;
+//	lsF_prev_error = 0;
+//	lsB_error = 0;
+//	lsB_prev_error = 0;
 /* Odometry variables reset */
-	distTravelled=0.0;
+//	distTravelled=0.0;
 }
 
 char encodeByte(int rpm) {
@@ -128,7 +127,7 @@ void transmitDiffState(struct differentialState desiredDiffState) {
 //Function to read linesensors and preprocess it.
 void lineFeedback(void) {
 //	if(digitalRead(lsF.NANDoutPin)) {
-//		lsF_error = readLineSensor(lsF);
+		lsF_error = readLineSensor(lsF);
 //	}
 	if(lsF_error == 255) {
 		if(lsF_prev_error < 0) {
@@ -141,9 +140,9 @@ void lineFeedback(void) {
 	}
 	lsF_prev_error = lsF_error;
 	usleep(1000);	//readings skew if this is removed. Need further study : Aniket,20 October,2016
-//	if(digitalRead(lsB.NANDoutPin)) {
-//		lsB_error = readLineSensor(lsB);
-//	}
+	if(digitalRead(lsB.NANDoutPin)) {
+		lsB_error = readLineSensor(lsB);
+	}
 	if(lsB_error == 255) {
 		if(lsB_prev_error < 0) {
 			lsB_error = -50;
@@ -154,6 +153,19 @@ void lineFeedback(void) {
 		}
 	}
 	lsB_prev_error = lsB_error;
+}
+
+void initHeightControl() {
+//	encoderheight = setupencoder(2,3);	
+	pinMode(heightMotorPin1,OUTPUT);
+	pinMode(heightMotorPin2,OUTPUT);
+	softPwmCreate(heightMotorPWM,0,255);
+	pinMode(relayButton,OUTPUT);
+	digitalWrite(relayButton,1);
+	digitalWrite(heightMotorPin1,0);
+	digitalWrite(heightMotorPin2,0);
+	maxPWM = 128;
+	minPWM = 5;
 }
 
 //Function for manual driving with heading control
@@ -277,7 +289,7 @@ void setPWM(float pwm, int i) {
 			if(pwm < minPWM) {
 				pwm = minPWM;
 			}
-			softPwmWrite(heightMotorPWM,5);			//Low PWM because for going downwards, gravity accelerates it
+			softPwmWrite(heightMotorPWM,0);			//Low PWM because for going downwards, gravity accelerates it
 			digitalWrite(heightMotorPin1,1);
 			digitalWrite(heightMotorPin2,0);		
 		} else if (pwm < 0) {
@@ -294,28 +306,27 @@ void setPWM(float pwm, int i) {
 
 void timerHandler() {
 	if(!ps2Ready /*|| !imuReady*/) {
-		transmitDiffState(stopState);
+//		transmitDiffState(stopState);
 	} else {
 /*  Mode control Driving */
 //		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_mode());
 //		transmitDiffState(desiredDiffState);
-//	 	printf("%d %d  \n",desiredDiffState.leftRPM,desiredDiffState.rightRPM,getHeading());
+//	 	printf("%d %d %f\n",desiredDiffState.leftRPM,desiredDiffState.rightRPM,getHeading());
 
 /*  Height control */
-//		printf("value = %d ?%d",encoderheight->value,);
 		right_analog_stick = ps2_getRY();
 //		if(right_analog_stick == 128 && prev_right_analog_stick != 128) {
 //			desiredHeight = encoderheight->value;
 //		}
 		if(right_analog_stick == 128) {
-			digitalWrite(29,1);
+			digitalWrite(relayButton,1);
 //			float heightError = (encoderheight->value)- desiredHeight ;
 //			float out = PID(heightError,heightControl);
 			setPWM(0,heightControl);
 			printf("0 :: \n");						
 		} else {
-			digitalWrite(29,0);
-			setPWM((ps2_getRY()-128)/2.0,heightControl);
+			digitalWrite(relayButton,0);
+			setPWM((ps2_getRY()-128),heightControl);
 			printf("1 :: \n");						
 		}
 		prev_right_analog_stick = right_analog_stick;
@@ -330,8 +341,13 @@ void timerHandler() {
 //		data_file << desiredDiffState.leftRPM << ";" << desiredDiffState.rightRPM << ";" << getHeading() << ";\n";
 //		data_file.close();
 	}
-	transmitMechanismControl_Packet();
-	printf(	"%d %d %d ::%d \n",printer_shoot,printer_load,printer_planeAngle,printer_dataFrame);
+	transmitMechanismControl();
+	if(mechanismState() == false) {
+		printf("Drive enable :: ");
+	} else {
+		printf("Mechanism enable :: ");
+	}
+	printf(	"%d %d %d :: %d ::rmp:%f\n",printer_shoot,printer_load,printer_planeAngle,printer_dataFrame,rpmpercent1);
 }
 
 void init() {
@@ -359,6 +375,9 @@ void init() {
 //	encoder2 = setupencoder(23,24);
 //	initOdometry(encoder1,encoder2);
 
+//Height control pin init
+	initHeightControl();
+
 	initPS2();
 	initPS2_2k17();		//Robocon 2k17 PS2 configuration
 //	initIMU();
@@ -369,24 +388,26 @@ void init() {
 
 //Interrupt on Junction occurence
 void junctionInterruptF(void) {
-	if(intF_flag){
+/*	if(intF_flag){
 		if(forward) {
 			lastJunction++;
-			writeY(arenaJunction[lastJunction-1] - distFromLS);
+			writeOdometry(arenaJunction[lastJunction-1] - distFromLS,Y);
 		}
 	}
 	intF_flag = true;
+*/
 	printf("Junction interruptF fired\n");
 }
 
 void junctionInterruptB(void) {
-	if(intB_flag){
+/*	if(intB_flag){
 		if(reverse) {
 			lastJunction--;
-			writeY(arenaJunction[lastJunction-1] - distFromLS);
+			writeOdometry(arenaJunction[lastJunction-1] - distFromLS,Y);
 		}
 	}
 	intB_flag = true;
+*/
 	printf("Junction interruptB fired\n");
 }
 
@@ -414,17 +435,6 @@ int main() {
 //	initLineSensor(lsF, &junctionInterruptF);
 //	initLineSensor(lsB, &junctionInterruptB);
 
-//Height control pin init
-//	encoderheight = setupencoder(2,3);	
-	pinMode(heightMotorPin1,OUTPUT);
-	pinMode(heightMotorPin2,OUTPUT);
-	softPwmCreate(heightMotorPWM,0,255);
-	pinMode(29,OUTPUT);
-	digitalWrite(29,1);
-	digitalWrite(heightMotorPin1,0);
-	digitalWrite(heightMotorPin2,0);
-	maxPWM = 128;
-	minPWM = 5;
 	initTimer(1000000/PIDfrequency, &timerHandler);
 	while(1) {
 		sleep(1);

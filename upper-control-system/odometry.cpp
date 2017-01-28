@@ -15,8 +15,8 @@ void resetOdometry(struct encoder *encoderA_,struct encoder *encoderB_) {
 	writeOdometry(0,X);
 	writeOdometry(0,Y);
 	writeOdometry(0,Phi);
-	resetEncoder(*encoderA_);
-	resetEncoder(*encoderB_);
+	resetEncoder(encoderA_);
+	resetEncoder(encoderB_);
 }
 
 void initOdometry(struct encoder *x,struct encoder *y)

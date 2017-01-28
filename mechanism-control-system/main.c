@@ -7,6 +7,7 @@
 #include "shoot.h"
 #include "load.h"
 #include "automation.h"
+#include "LCD_16x2_595_lib.h"
 
 int32_t maxPWM_throw = 10,maxPWM = 0;							//Random maxPWM value
 int32_t maxPWM_angle = 10;							//Random maxPWM value
@@ -67,6 +68,7 @@ long int printer_step,printer_first,printer_second;
 
 int main() {
 	SysCtlClockSet(SYSCTL_SYSDIV_5|SYSCTL_USE_PLL|SYSCTL_XTAL_16MHZ|SYSCTL_OSC_MAIN);
+	Lcd_16x2_595_init();
 	initPIDController(throw_motor,0.08,0.0,0.0); //0.04
 	initPIDController(angle_motor,9.0,0.0,0.0);
 	IntMasterEnable();
@@ -74,6 +76,7 @@ int main() {
 	UARTFIFODisable(UART0_BASE);
 	IntEnable(INT_UART0);
 	UARTIntEnable(UART0_BASE, UART_INT_RX);
+	//Lcd_Print("system started");
 	UART_TransmitString("System started.\r\n",0);
 	uart5Init();
 	maxPWM = SysCtlClockGet()/(PWMfrequency*8);
@@ -90,6 +93,23 @@ int main() {
 	loadInit();
 	timerInit();
 	while(1) {
+        SysCtlDelay(5000000);
+        Lcd_clearScreen();
+	    if(loadEnable == false){
+	        if(shootComplete == 0){
+	            Lcd_Print("SHOOT");
+	        }
+	        else{
+	            Lcd_Print("PA %d ",planeAngle);
+	            Lcd_Print("RPM %f ",shootPercent);
+	            Lcd_newLine();
+	            Lcd_Print("TA %d ",throw_counter);
+	        }
+	    }
+	    else{
+            Lcd_Print("RELOAD");
+	    }
+
 // 	 	UART_OutDec(shoot,0);
 //		UARTCharPut(UART0_BASE,';');
 		UART_OutDec(des_angle_counter,0);
@@ -168,10 +188,10 @@ void UARTIntHandler(void) {
 			tempRpm = (data & 0b00001100)>>2;
 			switch(tempRpm) {
 			case 1:
-				shootPercent += 0.05;
+				shootPercent += 0.025;
 				break;
 			case 2:
-				shootPercent -= 0.05;
+				shootPercent -= 0.025;
 				break;
 			}
 			shootPercent = setShootPercent(shootPercent);

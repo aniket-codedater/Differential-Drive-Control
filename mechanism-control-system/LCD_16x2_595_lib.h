@@ -67,18 +67,19 @@
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 //declaration global functions
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-extern void LCD_16x2_595_Periph_Init();
-extern void LCD_16x2_595_Command_Init();
-extern void LCD_595_Cmd(unsigned char c);
-extern void LCD_595_Chr_Cp(unsigned char c);
-void sendAstring(char *string_of_character);
-extern void LCD_595_Chr(char row, char column, char out_char);
-extern void LCD_595_text(char row, char column, char *text);
+extern void Lcd_16x2_595_init();
+extern void Lcd_595_Cmd(unsigned char c);
+extern void Lcd_595_send_character(unsigned char c);
+extern void Lcd_595_Chr(char row, char column, char out_char);
+extern void Lcd_595_text(char row, char column, char *text);
 void send_number(unsigned long n);
-void send_to_next_line(char *ch);
+void sendAstring(char *ch);
 void sendFloat_number( double n);
-void Position_LCD(unsigned char x, unsigned char y);
-void LCD_Print( char* format,...);
+void Position_Lcd(unsigned char x, unsigned char y);
+void Lcd_Print( char* format,...);
+void start_from_beginning();
+void Lcd_newLine();
+void Lcd_clearScreen();
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 //Section of the macros
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''

@@ -19,13 +19,6 @@ void slowTimerHandler() {
 }
 
 void powerOff() {
-	if(powerOffPressed) return;
-	powerOffPressed = true;
-	printf("powerOff\n");
-	stopIMU();
-	stopPS2();
-	stopTimer();
-	system("shutdown -h now");
 }
 
 void ps2Activated() {

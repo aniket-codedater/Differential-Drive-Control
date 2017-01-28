@@ -1,5 +1,5 @@
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-//includes
+//includes//
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 #include <stdint.h>
 #include <stdlib.h>
@@ -29,12 +29,13 @@ int l = 0;
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 void PulseEnable ();
 void shiftOut(unsigned char c);
+void Lcd_595_Cmd(unsigned char c);
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 //Function descriptions
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 //Global Functions
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-void LCD_16x2_595_Periph_Init()
+void Lcd_16x2_595_init()
 {
 
 		SysCtlPeripheralEnable(lcd_SysCtlPeripheral);
@@ -43,38 +44,34 @@ void LCD_16x2_595_Periph_Init()
 
 		GPIOPinWrite(lcd_port, (Enable | DATA | CLOCK), 0x00);
 
-}
-//''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-void LCD_16x2_595_Command_Init()
-{
-	SysCtlDelay(delay_12ms);
-	shiftOut(0x03);
-	PulseEnable ();
-	SysCtlDelay(delay_2_5ms);
+		SysCtlDelay(delay_12ms);
+		shiftOut(0x03);
+		PulseEnable ();
+		SysCtlDelay(delay_2_5ms);
 
-	shiftOut(0x03);
-	PulseEnable ();
-	SysCtlDelay(delay_2_5ms);
+		shiftOut(0x03);
+		PulseEnable ();
+		SysCtlDelay(delay_2_5ms);
 
-	shiftOut(0x03);
-	PulseEnable ();
-	SysCtlDelay(delay_2_5ms);
+		shiftOut(0x03);
+		PulseEnable ();
+		SysCtlDelay(delay_2_5ms);
 
-	shiftOut(0x02);
-	PulseEnable ();
-	SysCtlDelay(delay_2_5ms);
+		shiftOut(0x02);
+		PulseEnable ();
+		SysCtlDelay(delay_2_5ms);
 
-	LCD_595_Cmd(0x28);  //Function set - number of display 2 lines
+		Lcd_595_Cmd(0x28);  //Function set - number of display 2 lines
 
-	LCD_595_Cmd(0x08);  //Display off
+		Lcd_595_Cmd(0x08);  //Display off
 
-	LCD_595_Cmd(0x01);  //Display clear
+		Lcd_595_Cmd(0x01);  //Display clear
 
-	LCD_595_Cmd(0x0F);  //Cursor - Display on/off control
+		Lcd_595_Cmd(0x0F);  //Cursor - Display on/off control
 }
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 // to send command
-void LCD_595_Cmd(unsigned char c)
+void Lcd_595_Cmd(unsigned char c)
 {
     UpperNibble = c >> 4;
     LowerNibble = c & 0x0F;
@@ -89,48 +86,57 @@ void LCD_595_Cmd(unsigned char c)
 }
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 //to print character
-void LCD_595_Chr_Cp(unsigned char c)
+void Lcd_595_send_character(unsigned char c)
 {
 
     UpperNibble = c >> 4;
     bitsHigh = UpperNibble | 0x10;// 0x10 =>this is done to make RS pin high while sending data
     LowerNibble = c & 0x0F;
     bitsLow = LowerNibble | 0x10;
+    l++;
+    if(l>=32){
+    	SysCtlDelay(20000000);
+    	start_from_beginning();
 
-
-     shiftOut(bitsHigh);
-     PulseEnable ();
-
-     shiftOut(bitsLow);
-     PulseEnable ();
-     l++;
-
-}
-//''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-//to print a string
-void sendAstring(char *string_of_character){
-	while(*string_of_character>0){
-		LCD_595_Chr_Cp(*string_of_character);
-		*string_of_character++;
+	}
+	if(l<16){
+		shiftOut(bitsHigh);
+    	PulseEnable ();
+    	
+      	shiftOut(bitsLow);
+     	PulseEnable ();
+	}
+	else{
+		if(l==16){
+			Lcd_595_Cmd(0xC0);
+		}
+		shiftOut(bitsHigh);
+    	PulseEnable ();
+    	
+      	shiftOut(bitsLow);
+     	PulseEnable ();
 	}
 }
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-void LCD_595_Chr(char row, char column, char out_char)
+//''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+void Lcd_595_Chr(char row, char column, char out_char)
 {
-	Position_LCD(row,column);
-	LCD_595_Chr_Cp(out_char);
-	l=0;
+	Position_Lcd(row,column);
+	Lcd_595_send_character(out_char);
 }
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-void LCD_595_text(char row, char column, char *text)
+void Lcd_595_text(char row, char column, char *text)
 {
-	Position_LCD(row,column);
-	l = 0;
-	send_to_next_line(text);
+	Position_Lcd(row,column);
+	sendAstring(text);
 }
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 //Local Functions
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+void start_from_beginning(){
+	Lcd_595_Cmd(0x01);
+	Position_Lcd(1,1);
+}
 void PulseEnable ()
 {
 	GPIOPinWrite(lcd_port, Enable, 0x01);//EN = 1;
@@ -161,12 +167,12 @@ void shiftOut(unsigned char c)
    GPIOPinWrite(lcd_port, CLOCK, 0x20); //CLOCK = 1
 }
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-void Position_LCD(unsigned char x, unsigned char y)
+void Position_Lcd(unsigned char x, unsigned char y)
 {
 	 temp = 127 + y;
 	 if (x == 2) temp = temp + 64;
-	 LCD_595_Cmd(temp);
-	 l = 0;
+	 Lcd_595_Cmd(temp);
+	 l = y;
 }
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 //to print number
@@ -182,65 +188,39 @@ void send_number(unsigned long n) {
 		len++;
 	}
 	for( j=(len-1);j>=0;j--) {
-		LCD_595_Chr_Cp(arr[j]+'0');
+		Lcd_595_send_character(arr[j]+'0');
 	}
 }
 //  ENF OF FILE
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-void send_to_next_line(char *ch)
+//to print string
+void sendAstring(char *ch)
 {
     while(*ch!='\0'){
-			if(l < 16){
-				LCD_595_Chr_Cp(*ch);
-			}
-			else{
-				if (l == 16)
-				{
-					LCD_595_Cmd(0xC0);
-				}
-
-				LCD_595_Chr_Cp(*ch);
-			}
-			ch++;
-			l++;
+    	if(l>=32){
+    		SysCtlDelay(20000000);
+    		start_from_beginning();
 		}
+		Lcd_595_send_character(*ch);
+		ch++;
+	}
 }
 
 void sendFloat_number( double n){
-	int len1 = 0,len2 = 0;
     int32_t temp = n;
     float difference = n - (float)temp;
     int32_t num = difference*1000.0;
-    int32_t val1 = temp,val2=num;
-    while(val1!=0){
-    	val1 = val1/10;
-    	len1++;
-    }
-    while(val2!=0){
-    	val2 = val2/10;
-    	len2++;
-    }
-    l = l + len1 + len2;
-    if(l > 16){
-    	l = l - 16;
-    }
-    if(l < 16){
-    	send_number(temp);
-    	LCD_595_Chr_Cp('.');
-    	send_number(num);
-    	l = l + 1;
-    }
-    else{
-    	if(l >= 16){
-    		LCD_595_Cmd(0xC0);
-    		l = l - 16;
-    	}
-    	send_number(temp);
-       	LCD_595_Chr_Cp('.');
-       	send_number(num);
-    }
+
+    if(l>=32){
+    	SysCtlDelay(20000000);
+    	start_from_beginning();
+
+	}
+	send_number(temp);
+	Lcd_595_send_character('.');
+	send_number(num);
 }
-void LCD_Print( char* format,...){
+void Lcd_Print( char* format,...){
 	char *traverse;
 	int i;
 	char ch;
@@ -252,41 +232,41 @@ void LCD_Print( char* format,...){
 
 	for(traverse = format; *traverse != '\0'; traverse++)
 	    {
-	        while( *traverse != '%' && *traverse != '\0')
+	        while( *traverse != '%'&& *traverse !='\0')
 	        {
-	            LCD_595_Chr_Cp(*traverse);
+	            Lcd_595_send_character(*traverse);
 	            traverse++;
-	            l++;
 	        }
-	        if(*traverse != '\0')
-	        {
-	            traverse++;
-	        } else {
-	            break;
-	        }
+			
+	        if(*traverse!='\0'){
+	        	traverse++;
+			}
+			else{
+				break;
+			}
 			switch(*traverse){
 			case 'd': i = va_arg(arg,int);
 					  if(i<0)
 					  {
 						  i = -i;
-						  LCD_595_Chr_Cp('-');
+						  Lcd_595_send_character('-');
 					  }
 					  send_number(i);
 					  break;
 
 			case 'c': ch = va_arg(arg,char);
-					  LCD_595_Chr_Cp(ch);
+					  Lcd_595_send_character(ch);
 					  break;
 
 			case 's': s = va_arg(arg,char*);
-					  send_to_next_line(s);
+					  sendAstring(s);
 					  break;
 
 			case 'f': fl = va_arg(arg,double);
 						if(fl<0.0)
 					  {
 						  fl = -fl;
-						  LCD_595_Chr_Cp('-');
+						  Lcd_595_send_character('-');
 					  }
 					  sendFloat_number(fl);
 					  break;
@@ -294,4 +274,14 @@ void LCD_Print( char* format,...){
 	    }
 	va_end(arg);
 
+}
+
+void Lcd_newLine(void) {
+    Lcd_595_Cmd(0xC0);
+    l = 17;
+}
+
+void Lcd_clearScreen(void) {
+    Lcd_595_Cmd(0x01);
+    l = 0;
 }

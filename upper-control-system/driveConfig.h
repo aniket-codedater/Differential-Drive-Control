@@ -6,9 +6,11 @@
 #define HEIGHT_TOLERANCE 5
 
 /* GPIO pin def */
+#define headingRefButton 7
 #define heightMotorPin1 27
-#define heightMotorPin2 28
-#define heightMotorPWM 	26
+#define heightMotorPin2 29
+#define heightMotorPWM 	28
+#define relayButton 26
 
 extern bool ps2Ready;
 extern bool imuReady;
