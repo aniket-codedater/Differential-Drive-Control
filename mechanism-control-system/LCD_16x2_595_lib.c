@@ -181,17 +181,22 @@ void send_number(unsigned long n) {
 	int arr[10];
 	int len = 0;
 	int j = 0,r = 0;
-	while(val!=0) {
-		 r = val%10;
-		arr[len] = r;
-		val = val/10;
-		len++;
+	if(val == 0){
+	   Lcd_595_send_character(val + '0');
 	}
-	for( j=(len-1);j>=0;j--) {
-		Lcd_595_send_character(arr[j]+'0');
+	else{
+        while(val!=0) {
+             r = val%10;
+            arr[len] = r;
+            val = val/10;
+            len++;
+        }
+        for( j=(len-1);j>=0;j--) {
+            Lcd_595_send_character(arr[j]+'0');
+        }
 	}
 }
-//  ENF OF FILE
+//  END OF FILE
 //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 //to print string
 void sendAstring(char *ch)

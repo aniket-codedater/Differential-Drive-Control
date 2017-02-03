@@ -62,12 +62,12 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 #define SYSCTLPERIPH_LOAD_MOTOR2 			SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC)
 #define LOAD_MOTOR1_PORT 					GPIO_PORTA_BASE
 #define LOAD_MOTOR2_PORT 					GPIO_PORTC_BASE
-#define LM11 								GPIO_PIN_3
-#define LM12 								GPIO_PIN_4
+#define LM11 								GPIO_PIN_4
+#define LM12 								GPIO_PIN_3
 #define LM21 								GPIO_PIN_5
 #define LM22 								GPIO_PIN_6
-#define LM11_MASK 							3
-#define LM12_MASK 							4
+#define LM11_MASK 							4
+#define LM12_MASK 							3
 #define LM21_MASK 							5
 #define LM22_MASK 							6
 /* IR definitions */
@@ -83,10 +83,10 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 #define WHITE2 								1<<IR2_PIN_MASK
 #define BLACK 								0
 /* Solenoid definitions */
-#define SYSCTLPERIPH_SOLENOID 				SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC)
-#define SOLENOID_PORT				 		GPIO_PORTC_BASE
-#define SOLENOID_PIN 						GPIO_PIN_4
-#define SOLENOID_PIN_MASK 					4
+#define SYSCTLPERIPH_SOLENOID 				SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB)
+#define SOLENOID_PORT				 		GPIO_PORTB_BASE
+#define SOLENOID_PIN 						GPIO_PIN_7
+#define SOLENOID_PIN_MASK 					7
 /* Servo macros*/
 #define SERVO1_PIN							M0PWM2
 //#define SERVO2_PIN							M0PWM0

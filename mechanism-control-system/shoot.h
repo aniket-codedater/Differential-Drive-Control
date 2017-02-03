@@ -11,6 +11,7 @@
 #include "userLib/pidController.h"
 //6785 3
 #define TICK_PER_REV                    8145.0 //3860.0
+#define TICKS_PER_REVOLUTION_PER_DEGREE 22.63
 #define THROW_REVOLUTION                4.0
 #define STEP                            TICK_PER_REV*THROW_REVOLUTION
 #define SHOOT_DISC                      128
@@ -23,6 +24,7 @@ extern int shootComplete,triggered;
 extern volatile long int throw_counter;
 extern long int des_throw_counter, FIRST_STAGE;
 extern bool steady;
+extern float throw_angle;
 
 long int loadPoint(void);
 int8_t moveThrower(long int desiredCount);
@@ -30,4 +32,5 @@ void shootDisc(bool shootState);
 void cmd_throw(void);
 void updateFirstStage(void);
 void updateDesiredStage(void);
+extern float convertTicksToAngle (long int count);
 #endif /* SHOOT_H_ */

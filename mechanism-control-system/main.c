@@ -76,7 +76,7 @@ int main() {
 	UARTFIFODisable(UART0_BASE);
 	IntEnable(INT_UART0);
 	UARTIntEnable(UART0_BASE, UART_INT_RX);
-	//Lcd_Print("system started");
+	Lcd_Print("system started");
 	UART_TransmitString("System started.\r\n",0);
 	uart5Init();
 	maxPWM = SysCtlClockGet()/(PWMfrequency*8);
@@ -91,6 +91,7 @@ int main() {
 	qeiInit();
 	encoderInit(ISR_ANGLE,angle_motor);
 	loadInit();
+
 	timerInit();
 	while(1) {
         SysCtlDelay(5000000);
@@ -101,9 +102,9 @@ int main() {
 	        }
 	        else{
 	            Lcd_Print("PA %d ",planeAngle);
-	            Lcd_Print("RPM %f ",shootPercent);
+	            Lcd_Print("RPM %f ",shootPercent*100);
 	            Lcd_newLine();
-	            Lcd_Print("TA %d ",throw_counter);
+	            Lcd_Print("TA %f ",throw_angle);
 	        }
 	    }
 	    else{
@@ -116,7 +117,7 @@ int main() {
 		UARTCharPut(UART0_BASE,';');
 //		UART_OutDec(planeAngle,0);
 //		UARTCharPut(UART0_BASE,';');
-		UART_OutDec(angle_counter,0);
+		UART_OutDec(printer,0);
         UARTCharPut(UART0_BASE,';');
         UART_OutDec(des_throw_counter,0);
 		UARTCharPut(UART0_BASE,';');
@@ -134,11 +135,10 @@ int main() {
 }
 
 void Timer0IntHandler(void) {
-
-
    TimerIntClear(TIMER0_BASE,TIMER_TIMA_TIMEOUT);
 //   UART_TransmitString("inside timer\n",0);
    throw_counter = getThrowerPosition() ;
+   throw_angle = convertTicksToAngle(throw_counter);
     if(loadEnable == false) {
         if(enablePositionChange == 0) {
             shootDisc(!shootComplete);
@@ -188,10 +188,10 @@ void UARTIntHandler(void) {
 			tempRpm = (data & 0b00001100)>>2;
 			switch(tempRpm) {
 			case 1:
-				shootPercent += 0.025;
+				shootPercent += 0.0125;
 				break;
 			case 2:
-				shootPercent -= 0.025;
+				shootPercent -= 0.0125;
 				break;
 			}
 			shootPercent = setShootPercent(shootPercent);
@@ -227,7 +227,7 @@ void UARTIntHandler(void) {
 
 		} else {
 			loadEnable = true;
-	//        reload();
+	        reload();
 			int confidenceCheck = 0;
 			while(confidenceCheck < LOAD_POSITION_CONFIDENCE) {
 				throw_counter = QEIPositionGet(QEI0_BASE);
@@ -273,5 +273,11 @@ void UART0Handler(void) {
 		} else {
 			UART_TransmitString("Loading :: \r\n",0);
 		}
-	}
+	} else if(char_data == 's') {
+        UART_TransmitString("Servo angle 1 :: \r\n",0);
+	    moveServo(135,0);                                  //Servo hit
+	} else if(char_data == 'a') {
+        UART_TransmitString("Servo angle 2 :: \r\n",0);
+        moveServo(45,0);                                  //Servo hit
+    }
 }

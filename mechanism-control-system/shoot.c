@@ -12,6 +12,7 @@ long int des_throw_counter = STEP, FIRST_STAGE = STEP/THROW_REVOLUTION, SECOND_S
 volatile long int throw_counter = STEP;
 unsigned int steady_state_counter = 0, zcd_counter = 0;
 bool steady = false;
+float throw_angle = 0;
 
 //Debugger variables
 extern long int printer_step,printer_first,printer_second;
@@ -22,6 +23,7 @@ void updateFirstStage(void) {
 
 void updateDesiredStage(void) {
     des_throw_counter = throw_counter;
+    throw_angle = convertTicksToAngle(throw_counter);
 }
 
 long int loadPoint(void) {
@@ -94,4 +96,12 @@ void cmd_throw(void) {
 		FIRST_STAGE = des_throw_counter/THROW_REVOLUTION;
 	}
     steady_state_counter = 0;
+}
+float convertTicksToAngle (long int count){
+    float angle;
+    int rev;
+    rev = round(count/TICK_PER_REV);
+    count = count - (rev*TICK_PER_REV);
+    angle = (float)count/(TICKS_PER_REVOLUTION_PER_DEGREE * 1);
+    return angle;
 }

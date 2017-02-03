@@ -9,7 +9,7 @@
 #define AUTOMATION_H_
 
 #define TICKS_PER_REVOLUTION 8145
-#define TICKS_PER_REVOLUTION_PER_DEGREE 22.625
+#define TICKS_PER_REVOLUTION_PER_DEGREE 45.25
 
 #define POLE1_des_counter   52.5
 #define POLE2_des_counter   52.5
@@ -44,5 +44,6 @@ struct set_parameters {
 typedef struct set_parameters SET_VALUE;
 SET_VALUE SET_PARAMETERS(int POLE);
 long int converAngleToTicks(int angle);
+
 
 #endif /* AUTOMATION_H_ */

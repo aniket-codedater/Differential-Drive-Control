@@ -216,7 +216,7 @@ int8_t reload(void)
 		return -1;
 	}
 	no_of_discs_loaded++;
-	moveServo(180,servoID[loaderID]);									//Servo hit
+	moveServo(SERVO_ANGLE2,servoID[loaderID]);									//Servo hit
 	SysCtlDelay(SERVO_DELAY);
 	moveServo(SERVO_ANGLE1,servoID[loaderID]);
 	SysCtlDelay(SERVO_DELAY);

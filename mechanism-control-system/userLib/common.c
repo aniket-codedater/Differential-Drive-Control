@@ -26,6 +26,7 @@ void setPWM(float pwm,int i) {
 		} else {
 			PWMPulseWidthSet(PWM1_BASE, PWM_OUT_3, 1);
 			GPIOPinWrite(THROW_MOTOR_PORT,TM1|TM2,0);
+			printer = 0;
 		}
 	} else if(i == angle_motor) {
 		if(pwm > maxPWM_angle) {
