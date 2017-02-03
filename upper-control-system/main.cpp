@@ -103,10 +103,10 @@ void reset() {
 char encodeByte(int rpm) {
     if(rpm > maxRPM) {
         printf("Warning: Trying to send Velocity greater than 180. Limit : 180. Sending 180.\r\n");
-        rpm = 252; //must be even (maxRPM)
+        rpm = 100; //must be even (maxRPM)
     } else if(rpm < -(maxRPM + 1)) {
         printf("Warning: Trying to send Velocity lesser than -181. Limit : -181. Sending -181.\r\n");
-        rpm = -251; // must be odd
+        rpm = -99; // must be odd
     }
     if(rpm < 0) {
         rpm = -rpm;
@@ -126,10 +126,10 @@ void transmitDiffState(struct differentialState desiredDiffState) {
 
 //Function to read linesensors and preprocess it.
 void lineFeedback(void) {
-//	if(digitalRead(lsF.NANDoutPin)) {
-		lsF_error = readLineSensor(lsF);
-//	}
-	if(lsF_error == 255) {
+	if(digitalRead(lsF.NANDoutPin)) {
+		lsF_error = -readLineSensor(lsF); //- because the sensors are flipped
+	}
+	if(lsF_error == -255) {
 		if(lsF_prev_error < 0) {
 			lsF_error = -50;
 		} else if(lsF_prev_error > 0) {
@@ -141,9 +141,9 @@ void lineFeedback(void) {
 	lsF_prev_error = lsF_error;
 	usleep(1000);	//readings skew if this is removed. Need further study : Aniket,20 October,2016
 	if(digitalRead(lsB.NANDoutPin)) {
-		lsB_error = readLineSensor(lsB);
+		lsB_error = -readLineSensor(lsB);
 	}
-	if(lsB_error == 255) {
+	if(lsB_error == -255) {
 		if(lsB_prev_error < 0) {
 			lsB_error = -50;
 		} else if(lsB_prev_error > 0) {
@@ -207,7 +207,7 @@ struct unicycleState getDesiredUnicycleState_line(void) {
 	struct unicycleState desiredState;
 	float vy, vx;
 	lineFeedback();
-	printf("%f %f ;",lsF_error,lsB_error);
+	printf("%f %f ;\n",lsF_error,lsB_error);
 	desiredState.vx = 0;
 	desiredState.vy = ((128 - ps2_getY())/128.0) * maxVelocity;
 	dir_log(desiredState.vy);
@@ -280,6 +280,7 @@ void setPWM(float pwm, int i) {
 	if (pwm < -maxPWM) {
 		pwm = -maxPWM;
 	}
+	printf("%f is pwm;",pwm);
 	if(i == heightControl) {
 		if(fabs(pwm) < HEIGHT_TOLERANCE) {
 			digitalWrite(heightMotorPin1,1);
@@ -306,15 +307,16 @@ void setPWM(float pwm, int i) {
 
 void timerHandler() {
 	if(!ps2Ready /*|| !imuReady*/) {
-//		transmitDiffState(stopState);
+		transmitDiffState(stopState);
 	} else {
 /*  Mode control Driving */
-//		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_mode());
-//		transmitDiffState(desiredDiffState);
-//	 	printf("%d %d %f\n",desiredDiffState.leftRPM,desiredDiffState.rightRPM,getHeading());
+		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_mode());
+		transmitDiffState(desiredDiffState);
+	 	printf("%d %d %f\n",desiredDiffState.leftRPM,desiredDiffState.rightRPM,getHeading());
 
 /*  Height control */
 		right_analog_stick = ps2_getRY();
+printf("%d is ps2;",right_analog_stick);
 //		if(right_analog_stick == 128 && prev_right_analog_stick != 128) {
 //			desiredHeight = encoderheight->value;
 //		}
@@ -323,11 +325,11 @@ void timerHandler() {
 //			float heightError = (encoderheight->value)- desiredHeight ;
 //			float out = PID(heightError,heightControl);
 			setPWM(0,heightControl);
-			printf("0 :: \n");						
+//			printf("0 :: \n");						
 		} else {
 			digitalWrite(relayButton,0);
-			setPWM((ps2_getRY()-128),heightControl);
-			printf("1 :: \n");						
+			setPWM((ps2_getRY()-128)*0.75,heightControl);
+//			printf("1 :: \n");						
 		}
 		prev_right_analog_stick = right_analog_stick;
 
@@ -347,7 +349,7 @@ void timerHandler() {
 	} else {
 		printf("Mechanism enable :: ");
 	}
-	printf(	"%d %d %d :: %d ::rmp:%f\n",printer_shoot,printer_load,printer_planeAngle,printer_dataFrame,rpmpercent1);
+//	printf(	"%d %d %d :: %d ::rmp:%f\n",printer_shoot,printer_load,printer_planeAngle,printer_dataFrame,rpmpercent1);
 }
 
 void init() {
@@ -396,7 +398,7 @@ void junctionInterruptF(void) {
 	}
 	intF_flag = true;
 */
-	printf("Junction interruptF fired\n");
+//	printf("Junction interruptF fired\n");
 }
 
 void junctionInterruptB(void) {
@@ -408,15 +410,15 @@ void junctionInterruptB(void) {
 	}
 	intB_flag = true;
 */
-	printf("Junction interruptB fired\n");
+//	printf("Junction interruptB fired\n");
 }
 
 int main() {
 	init();
 	rpiPort = serialOpen("/dev/ttyS0",38400);			/*Serial communication port established*/
 	initPIDController(0.05,0.0,0.02,headingControl);		/*PID controller for angular velocity in manual mode*/  //0.05,0.02
-	initPIDController(0.013,0.0,0.47,lineControl_fw);	//0.03,0.0,1.2	/*PID controller for angular velocity in linefollow_fw mode*/
-	initPIDController(0.015,0.0,0.47,lineControl_bw);	//0.03,0.0,1.2	/*PID controller for angular velocity in linefollow_bw mode*/
+	initPIDController(0.01,0.0,0.22,lineControl_fw);	//0.03,0.0,1.2	/*PID controller for angular velocity in linefollow_fw mode*/
+	initPIDController(0.01,0.0,0.22,lineControl_bw);	//0.03,0.0,1.2	/*PID controller for angular velocity in linefollow_bw mode*/
 	initPIDController(0.16,0.0,0.0,heightControl);
 	initPIDController(1.0,0.0,0.0,odometryControl);
 
@@ -432,8 +434,8 @@ int main() {
 	lsB.junctionPin = 5;
 	lsB.NANDoutPin = 0;
 
-//	initLineSensor(lsF, &junctionInterruptF);
-//	initLineSensor(lsB, &junctionInterruptB);
+	initLineSensor(lsF, &junctionInterruptF);
+	initLineSensor(lsB, &junctionInterruptB);
 
 	initTimer(1000000/PIDfrequency, &timerHandler);
 	while(1) {

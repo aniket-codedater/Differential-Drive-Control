@@ -41,8 +41,8 @@ struct differentialState {int leftRPM; int rightRPM;};
 #define distFromLS				80.0
 
 //Motion constraints specifications
-#define maxRPM			252	//in rpm
-#define maxVelocity		180 //in cm/s
+#define maxRPM			100	//in rpm
+#define maxVelocity		300 //in cm/s
 
 //Frequency specifications
 #define PIDfrequency	40
