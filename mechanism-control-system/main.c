@@ -9,18 +9,25 @@
 #include "automation.h"
 #include "LCD_16x2_595_lib.h"
 
+
 int32_t maxPWM_throw = 10,maxPWM = 0;							//Random maxPWM value
 int32_t maxPWM_angle = 10;							//Random maxPWM value
 int32_t minPWM_throw = 0;						//Minimum PWM value for the throw motor to move
 int32_t minPWM_angle = 0;						//Minimum PWM value for the angle motor to move
+uint32_t EEPROM_planeAngle;
 
 volatile float shootPercent = 1.0;
 volatile int shoot = 0,load = 0,planeAngle = 0;			//UART packet value holders of the mechanism
 volatile int8_t enablePositionChange = 0;
 bool loadEnable = false; 
 bool autonomous_mode = false;
+bool reset = false;
 SET_VALUE GET_PARAM;
 int POLE;
+
+//EEPROM
+extern void EEPROM_init();
+extern void EEPROM_send(uint32_t pui32Data);
 
 //Interrupt routines prototype
 void Timer0IntHandler(void);
@@ -52,14 +59,24 @@ int setPlaneAngle(int i) {
     return planeAngle;
 }
 
-void setThrowerPosition(long int i) {
-    loadPoint();
+void setThrowerPositionRelative(long int i) {
     des_throw_counter = throw_counter + i;
+}
 
+void setThrowerPositionAbsolute(long int i) {
+    des_throw_counter = i;
 }
 
 long int getThrowerPosition(void) {
     return QEIPositionGet(QEI0_BASE);
+}
+//EEPROM FUNCTIONS
+void EEPROM_init(){
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_EEPROM0);
+    EEPROMInit();
+}
+void EEPROM_send(uint32_t pui32Data){
+    EEPROMProgram(&pui32Data, 0x0, sizeof(pui32Data));
 }
 
 //Debugging variables
@@ -69,6 +86,7 @@ long int printer_step,printer_first,printer_second;
 int main() {
 	SysCtlClockSet(SYSCTL_SYSDIV_5|SYSCTL_USE_PLL|SYSCTL_XTAL_16MHZ|SYSCTL_OSC_MAIN);
 	Lcd_16x2_595_init();
+	EEPROM_init();
 	initPIDController(throw_motor,0.08,0.0,0.0); //0.04
 	initPIDController(angle_motor,9.0,0.0,0.0);
 	IntMasterEnable();
@@ -78,11 +96,10 @@ int main() {
 	UARTIntEnable(UART0_BASE, UART_INT_RX);
 	Lcd_Print("system started");
 	UART_TransmitString("System started.\r\n",0);
-	uart5Init();
 	maxPWM = SysCtlClockGet()/(PWMfrequency*8);
 	maxPWM_throw = maxPWM;
 	maxPWM_angle = maxPWM;
-	minPWM_throw = maxPWM/20.0;             //16.0
+	minPWM_throw = maxPWM/10.0;             //16.0
 	minPWM_angle = maxPWM/20.0;
 	maxPWM_throw = maxPWM * shootPercent;	// 0.7 times for middle pole at 90 degree
 	pwmInit();
@@ -91,7 +108,14 @@ int main() {
 	qeiInit();
 	encoderInit(ISR_ANGLE,angle_motor);
 	loadInit();
-
+	EEPROMRead(&EEPROM_planeAngle, 0x0, sizeof(EEPROM_planeAngle));
+    int8_t resetPlaneAngle = EEPROM_planeAngle;
+	if(resetPlaneAngle > 15) {
+	    resetPlaneAngle =  15 - resetPlaneAngle;
+	}
+    angle_counter = convertPlaneAngleToTicks(resetPlaneAngle);
+	planeAngle = setPlaneAngle(planeAngle);
+    uart5Init();
 	timerInit();
 	while(1) {
         SysCtlDelay(5000000);
@@ -138,7 +162,7 @@ void Timer0IntHandler(void) {
    TimerIntClear(TIMER0_BASE,TIMER_TIMA_TIMEOUT);
 //   UART_TransmitString("inside timer\n",0);
    throw_counter = getThrowerPosition() ;
-   throw_angle = convertTicksToAngle(throw_counter);
+   throw_angle = convertTicksToThrowAngle(throw_counter);
     if(loadEnable == false) {
         if(enablePositionChange == 0) {
             shootDisc(!shootComplete);
@@ -183,7 +207,11 @@ void UARTIntHandler(void) {
 				break;
 			}
 			planeAngle = setPlaneAngle(planeAngle);
-	
+			EEPROM_planeAngle = planeAngle;
+			if(planeAngle < 0){
+			    EEPROM_planeAngle = (planeAngle * (-1)) + 15;
+			}
+			EEPROM_send(EEPROM_planeAngle);
 			/*RPM change routine*/
 			tempRpm = (data & 0b00001100)>>2;
 			switch(tempRpm) {
@@ -245,7 +273,8 @@ void UARTIntHandler(void) {
 	    GET_PARAM = SET_PARAMETERS(POLE);
 	    planeAngle = GET_PARAM.PLANE_ANGLE;
 	    shootPercent = GET_PARAM.SHOOT_PERCENT;
-	    maxPWM = maxPWM * shootPercent;
+	    throw_angle = GET_PARAM.THROW_ANGLE;
+	    maxPWM_throw = maxPWM * shootPercent;
 	}
 }
 

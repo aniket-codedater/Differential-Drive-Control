@@ -23,7 +23,7 @@ void updateFirstStage(void) {
 
 void updateDesiredStage(void) {
     des_throw_counter = throw_counter;
-    throw_angle = convertTicksToAngle(throw_counter);
+    throw_angle = convertTicksToThrowAngle(throw_counter);
 }
 
 long int loadPoint(void) {
@@ -97,11 +97,19 @@ void cmd_throw(void) {
 	}
     steady_state_counter = 0;
 }
-float convertTicksToAngle (long int count){
+float convertTicksToThrowAngle (long int count){
     float angle;
     int rev;
-    rev = round(count/TICK_PER_REV);
+    rev = (count/TICK_PER_REV);
     count = count - (rev*TICK_PER_REV);
-    angle = (float)count/(TICKS_PER_REVOLUTION_PER_DEGREE * 1);
+    angle = (float)(count/TICKS_PER_REVOLUTION_PER_DEGREE);
     return angle;
+}
+
+long int convertThrowAngleToTicks(float angle){
+    int rev;
+    rev = (throw_counter/TICK_PER_REV);
+    long int count = angle * TICKS_PER_REVOLUTION_PER_DEGREE;
+    count = (rev*TICK_PER_REV) + count;
+    return count;
 }
