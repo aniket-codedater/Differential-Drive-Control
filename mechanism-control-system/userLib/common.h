@@ -27,7 +27,7 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 
 #define PIDfrequency 						100
 #define PWMfrequency 						2500
-#define MAX_LOAD_DISK 						8
+#define MAX_LOAD_DISK 						13
 #define LOAD_POSITION_CONFIDENCE			5000
 /* Throwing macros*/
 #define SYSCTLPERIPH_THROW_MOTOR		 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA)

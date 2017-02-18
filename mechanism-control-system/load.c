@@ -129,8 +129,8 @@ int IRstateConfidenceCheck(uint8_t mech_no)
 {
 	long int black_state_confidence = 0;
 	long int white_state_confidence = 0;
-	long int black_confidence_level = 55000;
-	long int white_confidence_level = 55000;
+	long int black_confidence_level = 100;
+	long int white_confidence_level = 100;
 
 	if(system_going_0_from_top == 1)
 	{
@@ -203,11 +203,11 @@ int8_t reload(void)
 	reload_in_progress = 1;
 	GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN,0); 						//Piston up
 
-	if(no_of_discs_loaded < MAX_LOAD_DISK ) {							//Select loader
+//	if(no_of_discs_loaded < MAX_LOAD_DISK ) {							//Select loader
 		loaderID = loader1;
-	} else if(no_of_discs_loaded >= MAX_LOAD_DISK ) {
-		loaderID = loader2;
-	}
+//	} else if(no_of_discs_loaded >= MAX_LOAD_DISK ) {
+//		loaderID = loader2;
+//	}
 	start_color = -1;
 	while(start_color == -1) {
 		start_color = IRstateConfidenceCheck(loaderID);							//Start color detection
@@ -224,13 +224,14 @@ int8_t reload(void)
 	SysCtlDelay(SERVO_DELAY);
 
 	GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN,(1<<SOLENOID_PIN_MASK));	//Piston down
-
+/*
 	if(no_of_discs_loaded >= (2*MAX_LOAD_DISK)) {
 		bring_system_to_0_from_top(loader2);
 		no_of_discs_loaded = 0;
 	} else if(no_of_discs_loaded >= MAX_LOAD_DISK) {
 		bring_system_to_0_from_top(loader1);
 	}
+*/
 	reload_in_progress = 0;
 	return 1;
 }

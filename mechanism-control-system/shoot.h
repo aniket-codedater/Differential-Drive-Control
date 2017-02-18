@@ -10,13 +10,13 @@
 #include "userLib/common.h"
 #include "userLib/pidController.h"
 //6785 3
-#define TICK_PER_REV                    4002.0
-#define TICKS_PER_REVOLUTION_PER_DEGREE 11.1166     //Green encoder ticks 4000 for 360degree
+#define TICK_PER_REV                    49000.0
+#define TICKS_PER_REVOLUTION_PER_DEGREE 136.11     //Green encoder ticks 4000 for 360degree
 #define THROW_REVOLUTION                4.0
 #define STEP                            TICK_PER_REV*THROW_REVOLUTION
 #define SHOOT_DISC                      128
 #define LOAD_DISC                       64
-#define SHOOT_TOLERANCE                 15
+#define SHOOT_TOLERANCE                 50
 #define STEADY_STATE_CONFIDENCE         50
 #define ZCD_CONFIDENCE                  30
 

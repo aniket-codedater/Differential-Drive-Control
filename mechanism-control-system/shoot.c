@@ -45,7 +45,6 @@ int8_t moveThrower(long int desiredCount) {
 		if(steady_state_counter > STEADY_STATE_CONFIDENCE) {
 			steady = true;
 			zcd_counter = 0;
-			//UART_TransmitString("STEADY COUNTER stabilized\r\n",0);
 			return 1;
 		}
 	} else {

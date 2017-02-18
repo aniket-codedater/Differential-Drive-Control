@@ -1,3 +1,5 @@
+#define ANGLE_RESET_ROUTINE 0
+
 #include "userLib/common.h"
 #include "userLib/init.h"
 #include "userLib/pidController.h"
@@ -49,13 +51,20 @@ float setShootPercent(float i) {
 
 int setPlaneAngle(int i) {
     planeAngle = i;
-    if(planeAngle > 15) {
-        planeAngle = 15;
+    if(planeAngle > MAX_ANGLE) {
+        planeAngle = MAX_ANGLE;
     }
-    if(planeAngle < -15) {
-        planeAngle = -15;
+    if(planeAngle < -MAX_ANGLE) {
+        planeAngle = -MAX_ANGLE;
     }
     cmd_angle(planeAngle);
+#if ANGLE_RESET_ROUTINE == 0
+    EEPROM_planeAngle = planeAngle;
+    if(planeAngle < 0){
+        EEPROM_planeAngle = (planeAngle * (-1)) + MAX_ANGLE;
+    }
+    EEPROM_send(EEPROM_planeAngle);
+#endif
     return planeAngle;
 }
 
@@ -65,6 +74,7 @@ void setThrowerPositionRelative(long int i) {
 
 void setThrowerPositionAbsolute(long int i) {
     des_throw_counter = i;
+    updateFirstStage();
 }
 
 long int getThrowerPosition(void) {
@@ -87,7 +97,7 @@ int main() {
 	SysCtlClockSet(SYSCTL_SYSDIV_5|SYSCTL_USE_PLL|SYSCTL_XTAL_16MHZ|SYSCTL_OSC_MAIN);
 	Lcd_16x2_595_init();
 	EEPROM_init();
-	initPIDController(throw_motor,0.08,0.0,0.0); //0.04
+	initPIDController(throw_motor,0.001,0.0,0.0); //0.04
 	initPIDController(angle_motor,9.0,0.0,0.0);
 	IntMasterEnable();
 	uart0Init();
@@ -99,7 +109,7 @@ int main() {
 	maxPWM = SysCtlClockGet()/(PWMfrequency*8);
 	maxPWM_throw = maxPWM;
 	maxPWM_angle = maxPWM;
-	minPWM_throw = maxPWM/10.0;             //16.0
+	minPWM_throw = maxPWM/40.0;             //16.0
 	minPWM_angle = maxPWM/20.0;
 	maxPWM_throw = maxPWM * shootPercent;	// 0.7 times for middle pole at 90 degree
 	pwmInit();
@@ -108,13 +118,16 @@ int main() {
 	qeiInit();
 	encoderInit(ISR_ANGLE,angle_motor);
 	loadInit();
+#if ANGLE_RESET_ROUTINE == 0
 	EEPROMRead(&EEPROM_planeAngle, 0x0, sizeof(EEPROM_planeAngle));
     int8_t resetPlaneAngle = EEPROM_planeAngle;
-	if(resetPlaneAngle > 15) {
-	    resetPlaneAngle =  15 - resetPlaneAngle;
+	if(resetPlaneAngle > MAX_ANGLE) {
+	    resetPlaneAngle =  MAX_ANGLE - resetPlaneAngle;
 	}
     angle_counter = convertPlaneAngleToTicks(resetPlaneAngle);
 	planeAngle = setPlaneAngle(planeAngle);
+#endif
+    EEPROM_send(0);
     uart5Init();
 	timerInit();
 	while(1) {
@@ -135,25 +148,12 @@ int main() {
             Lcd_Print("RELOAD");
 	    }
 
-// 	 	UART_OutDec(shoot,0);
-//		UARTCharPut(UART0_BASE,';');
-		UART_OutDec(des_angle_counter,0);
-		UARTCharPut(UART0_BASE,';');
-//		UART_OutDec(planeAngle,0);
-//		UARTCharPut(UART0_BASE,';');
-		UART_OutDec(printer,0);
         UARTCharPut(UART0_BASE,';');
-        UART_OutDec(des_throw_counter,0);
-		UARTCharPut(UART0_BASE,';');
-		UART_OutDec(throw_counter,0);
-		UARTCharPut(UART0_BASE,';');
-        UART_OutDec(maxPWM_throw,0);
+        UART_OutDec(planeAngle,0);
         UARTCharPut(UART0_BASE,';');
-        UART_OutDec(printer_step,0);
+        UART_OutDec(shootPercent*100,0);
         UARTCharPut(UART0_BASE,';');
-        UART_OutDec(printer_first,0);
-        UARTCharPut(UART0_BASE,';');
-        UART_OutDec(printer_second,0);
+        UART_OutDec(throw_angle,0);
 		UART_TransmitString("\r\n",0);
 	}
 }
@@ -207,11 +207,6 @@ void UARTIntHandler(void) {
 				break;
 			}
 			planeAngle = setPlaneAngle(planeAngle);
-			EEPROM_planeAngle = planeAngle;
-			if(planeAngle < 0){
-			    EEPROM_planeAngle = (planeAngle * (-1)) + 15;
-			}
-			EEPROM_send(EEPROM_planeAngle);
 			/*RPM change routine*/
 			tempRpm = (data & 0b00001100)>>2;
 			switch(tempRpm) {
@@ -254,7 +249,7 @@ void UARTIntHandler(void) {
 			}
 
 		} else {
-			loadEnable = true;
+/*			loadEnable = true;
 	        reload();
 			int confidenceCheck = 0;
 			while(confidenceCheck < LOAD_POSITION_CONFIDENCE) {
@@ -265,8 +260,8 @@ void UARTIntHandler(void) {
 					confidenceCheck = 0;
 				}
 			}
-			loadEnable = false;
-		}
+			loadEnable = false;*/
+	    }
 	}
 	else{
 	    POLE = (data & 0b00000111);
@@ -304,9 +299,9 @@ void UART0Handler(void) {
 		}
 	} else if(char_data == 's') {
         UART_TransmitString("Servo angle 1 :: \r\n",0);
-	    moveServo(135,0);                                  //Servo hit
+	    moveServo(SERVO_ANGLE1,0);                                  //Servo hit
 	} else if(char_data == 'a') {
         UART_TransmitString("Servo angle 2 :: \r\n",0);
-        moveServo(45,0);                                  //Servo hit
+        moveServo(SERVO_ANGLE2,0);                                  //Servo hit
     }
 }

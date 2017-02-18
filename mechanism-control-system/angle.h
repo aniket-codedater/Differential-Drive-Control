@@ -16,6 +16,7 @@
 #define ENCODER_TICK_PER_REV 		1000.0
 #define ENCODER_TICK_PER_MECH_REV	ENCODER_TICK_PER_REV*INV_WORM_GEAR_RATIO
 #define TICK_PER_DEGREE				ENCODER_TICK_PER_MECH_REV/360.0
+#define MAX_ANGLE                   30
 
 //Angle change variables
 extern long int angle_counter;
