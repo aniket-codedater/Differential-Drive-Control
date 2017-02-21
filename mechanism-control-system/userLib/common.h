@@ -90,7 +90,7 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 #define SOLENOID_PIN_MASK 					7
 /* Servo macros*/
 #define SERVO1_PIN							M0PWM2
-//#define SERVO2_PIN							M0PWM0
+#define SERVO2_PIN							M1PWM1
 /* Limit switch macros */
 #define SYSCTLPERIPH_LIMIT1_SWITCH			SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD)
 #define LIMIT1_SWITCH_PORT					GPIO_PORTD_BASE

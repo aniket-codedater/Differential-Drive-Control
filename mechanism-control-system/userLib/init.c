@@ -86,6 +86,7 @@ void pwmInit(void) {
 	SysCtlPWMClockSet(SYSCTL_PWMDIV_8);
 	//Angle motor PD0
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM1);
+
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
 	GPIOPinTypePWM(GPIO_PORTD_BASE, GPIO_PIN_0);
 	GPIOPinConfigure(GPIO_PD0_M1PWM0);
@@ -103,4 +104,31 @@ void pwmInit(void) {
 	PWMOutputState(PWM1_BASE, PWM_OUT_3_BIT, true);//enables pwm output
 	PWMGenEnable(PWM1_BASE, PWM_GEN_1);//enables the timer counter of pwm generator block
 
+    //Servo Loader 1
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM0);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+    GPIOPinTypePWM(GPIO_PORTB_BASE, GPIO_PIN_4);
+    GPIOPinConfigure(GPIO_PB4_M0PWM2);
+    PWMGenConfigure(PWM0_BASE, PWM_GEN_1, PWM_GEN_MODE_DOWN);
+    PWMGenPeriodSet(PWM0_BASE, PWM_GEN_1, SysCtlClockGet()/(8*50));
+    PWMOutputState(PWM0_BASE, PWM_OUT_2_BIT, true);
+    PWMGenEnable(PWM0_BASE, PWM_GEN_1);
+
+    //Servo loader 2
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
+    GPIOPinTypePWM(GPIO_PORTD_BASE, GPIO_PIN_1);
+    GPIOPinConfigure(GPIO_PD1_M0PWM7);
+    PWMGenConfigure(PWM0_BASE, PWM_GEN_3, PWM_GEN_MODE_DOWN);
+    PWMGenPeriodSet(PWM0_BASE, PWM_GEN_3, SysCtlClockGet()/(8*50));
+    PWMOutputState(PWM0_BASE, PWM_OUT_7_BIT, true);
+    PWMGenEnable(PWM0_BASE, PWM_GEN_3);
+}
+
+void setServoAngle(int i,float time) {
+    float ticks_for_duty_cycle = time/(8/(float)SysCtlClockGet()) - 1;
+    if(i == loader1) {
+        PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2,ticks_for_duty_cycle);
+    } else if (i == loader2) {
+        PWMPulseWidthSet(PWM0_BASE, PWM_OUT_7,ticks_for_duty_cycle);
+    }
 }

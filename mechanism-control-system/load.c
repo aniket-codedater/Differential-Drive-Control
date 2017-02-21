@@ -62,10 +62,10 @@ void loadInit(void) {
 	GPIOPinTypeGPIOInput(LIMIT2_SWITCH_PORT, LIMIT2_SWITCH_PIN1|LIMIT2_SWITCH_PIN2);
 
 	//servo init
-	servoID[loader1] =	servoInit(SERVO1_PIN,COUNT_DOWN,50);
+	servoID[loader1] =	servoInit(loader1);
 	moveServo(SERVO_ANGLE2,servoID[loader1]);
-	//servoID[loader2] = servoInit(SERVO2_PIN,COUNT_DOWN,50);
-	//moveServo(SERVO_ANGLE2,servoID[loader2]);
+	servoID[loader2] = servoInit(loader2);
+	moveServo(SERVO_ANGLE2,servoID[loader2]);
 }
 
 int8_t moveLoader(uint8_t i,uint8_t startColor,uint8_t dir) {

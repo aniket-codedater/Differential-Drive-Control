@@ -5,7 +5,7 @@
 #include "userLib/servo.h"
 
 #define LIMIT_ENABLE	0
-#define SERVO_ANGLE1	20.0
+#define SERVO_ANGLE1	30.0
 #define SERVO_ANGLE2	150.0
 #define SERVO_DELAY		15000000
 enum {up, down};

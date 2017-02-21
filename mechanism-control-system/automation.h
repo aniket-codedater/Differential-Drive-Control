@@ -13,29 +13,29 @@
 #include "load.h"
 #include "userLib/common.h"
                                     //Height
-#define POLE1_des_counter   52.5
-#define POLE2_des_counter   282.0
-#define POLE3_des_counter   289.2   //69
-#define POLE4_des_counter   295.9   //71        //16/2/17 2:16
-#define POLE5_des_counter   289.2   //69
-#define POLE6_des_counter   282.0   //27
-#define POLE7_des_counter   82.5
+#define POLE1_des_counter   202.8   //h69
+#define POLE2_des_counter   291.124 //h12
+#define POLE3_des_counter   294.0   //h41
+#define POLE4_des_counter   279.4   //279-290 h69      //16/2/17 2:16
+#define POLE5_des_counter   294.0   //h41
+#define POLE6_des_counter   291.124 //h12
+#define POLE7_des_counter   299.8   //h69
 
-#define POLE1_ANGLE         0
+#define POLE1_ANGLE         6
 #define POLE2_ANGLE         16
-#define POLE3_ANGLE         12
-#define POLE4_ANGLE         19    //-16
-#define POLE5_ANGLE         12
+#define POLE3_ANGLE         15
+#define POLE4_ANGLE         17    //17-18
+#define POLE5_ANGLE         15
 #define POLE6_ANGLE         16
-#define POLE7_ANGLE         0
+#define POLE7_ANGLE         17
 
-#define POLE1_SHOOT_PER     0.45
-#define POLE2_SHOOT_PER     0.47
-#define POLE3_SHOOT_PER     0.4875
-#define POLE4_SHOOT_PER     0.56      //58-63
-#define POLE5_SHOOT_PER     0.4620
-#define POLE6_SHOOT_PER     0.47
-#define POLE7_SHOOT_PER     1.0
+#define POLE1_SHOOT_PER     0.325
+#define POLE2_SHOOT_PER     0.5075
+#define POLE3_SHOOT_PER     0.5175
+#define POLE4_SHOOT_PER     0.5225      //58-63
+#define POLE5_SHOOT_PER     0.5175
+#define POLE6_SHOOT_PER     0.5075
+#define POLE7_SHOOT_PER     0.7974
 
 struct set_parameters {
     float SHOOT_PERCENT;

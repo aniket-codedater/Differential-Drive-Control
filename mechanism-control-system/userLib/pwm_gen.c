@@ -249,7 +249,6 @@ void config_pwm(uint8_t MPWM,uint8_t count_dir,uint8_t pwm_frequency)
 				PWMGenPeriodSet(PWM1_BASE, PWM_GEN_0, ticks_for_pwm_frequency);
 			}
 			break;
-			
 			case 22 :
 			{
 			SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM1);
@@ -442,9 +441,9 @@ void set_pwm(uint8_t MPWM,uint8_t select,uint8_t duty_cycle,float time_period_in
 	
 		case 21	:
 			{
-			PWMPulseWidthSet(PWM1_BASE, PWM_OUT_1,ticks_for_duty_cycle);
-			PWMOutputState(PWM1_BASE, PWM_OUT_1_BIT, true);
-			PWMGenEnable(PWM1_BASE, PWM_GEN_0);
+			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1,ticks_for_duty_cycle);
+			PWMOutputState(PWM0_BASE, PWM_OUT_1_BIT, true);
+			PWMGenEnable(PWM0_BASE, PWM_GEN_3);
 			}
 			break;
 			

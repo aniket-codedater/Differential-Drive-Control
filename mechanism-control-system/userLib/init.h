@@ -18,5 +18,5 @@ void uart0Init(void);
 void uart1Init(void);
 void uart5Init(void);
 void pwmInit(void);
-
+void setServoAngle(int id, float time);
 #endif

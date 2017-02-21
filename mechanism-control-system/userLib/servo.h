@@ -4,7 +4,7 @@
 #define MAX_SERVO 2
 
 void resetServo(void);
-int servoInit(int pwmPin, int count_mode, int freq);
+int servoInit(int pwmPin);
 void moveServo(float angle,int servo_id);
 
 #endif

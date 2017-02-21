@@ -11,7 +11,6 @@
 #include "automation.h"
 #include "LCD_16x2_595_lib.h"
 
-
 int32_t maxPWM_throw = 10,maxPWM = 0;							//Random maxPWM value
 int32_t maxPWM_angle = 10;							//Random maxPWM value
 int32_t minPWM_throw = 0;						//Minimum PWM value for the throw motor to move
@@ -93,6 +92,7 @@ void EEPROM_send(uint32_t pui32Data){
 int printer;
 long int printer_step,printer_first,printer_second;
 
+
 int main() {
 	SysCtlClockSet(SYSCTL_SYSDIV_5|SYSCTL_USE_PLL|SYSCTL_XTAL_16MHZ|SYSCTL_OSC_MAIN);
 	Lcd_16x2_595_init();
@@ -104,7 +104,7 @@ int main() {
 	UARTFIFODisable(UART0_BASE);
 	IntEnable(INT_UART0);
 	UARTIntEnable(UART0_BASE, UART_INT_RX);
-	Lcd_Print("system started");
+	Lcd_Print("System started");
 	UART_TransmitString("System started.\r\n",0);
 	maxPWM = SysCtlClockGet()/(PWMfrequency*8);
 	maxPWM_throw = maxPWM;
@@ -131,9 +131,8 @@ int main() {
     uart5Init();
 	timerInit();
 	while(1) {
-        SysCtlDelay(5000000);
-        Lcd_clearScreen();
 	    if(loadEnable == false){
+	        Lcd_clearScreen();
 	        if(shootComplete == 0){
 	            Lcd_Print("SHOOT");
 	        }
@@ -143,11 +142,23 @@ int main() {
 	            Lcd_newLine();
 	            Lcd_Print("TA %f ",throw_angle);
 	        }
+            SysCtlDelay(5000000);
 	    }
 	    else{
+	        Lcd_clearScreen();
             Lcd_Print("RELOAD");
+            reload();
+            int confidenceCheck = 0;
+            while(confidenceCheck < LOAD_POSITION_CONFIDENCE) {
+                throw_counter = QEIPositionGet(QEI0_BASE);
+                if(moveThrower(des_throw_counter) == 1) {
+                    confidenceCheck++;
+                } else {
+                    confidenceCheck = 0;
+                }
+            }
+            loadEnable = false;
 	    }
-
         UARTCharPut(UART0_BASE,';');
         UART_OutDec(planeAngle,0);
         UARTCharPut(UART0_BASE,';');
@@ -160,23 +171,20 @@ int main() {
 
 void Timer0IntHandler(void) {
    TimerIntClear(TIMER0_BASE,TIMER_TIMA_TIMEOUT);
-//   UART_TransmitString("inside timer\n",0);
    throw_counter = getThrowerPosition() ;
    throw_angle = convertTicksToThrowAngle(throw_counter);
-    if(loadEnable == false) {
-        if(enablePositionChange == 0) {
-            shootDisc(!shootComplete);
-        } else {
-            if(enablePositionChange == 1) {         //Clock
-                setPWM(minPWM_throw,throw_motor);
-            } else if(enablePositionChange == -1) { //Anticlock
-                setPWM(-minPWM_throw,throw_motor);
-            }
-            updateDesiredStage();
-            updateFirstStage();
+    if(enablePositionChange == 0) {
+        shootDisc(!shootComplete);
+    } else {
+        if(enablePositionChange == 1) {         //Clock
+            setPWM(minPWM_throw,throw_motor);
+        } else if(enablePositionChange == -1) { //Anticlock
+            setPWM(-minPWM_throw,throw_motor);
         }
-        changeAngle();
+        updateDesiredStage();
+        updateFirstStage();
     }
+    changeAngle();
 }
 
 void UARTIntHandler(void) {
@@ -195,7 +203,7 @@ void UARTIntHandler(void) {
 		uint8_t tempPlaneAngle = 0, tempRpm = 0, tempPosChange = 0;
 		shoot = (data & 0b10000000);
 		load = (data & 0b01000000);
-		if(load != LOAD_DISC) {
+		if(load != LOAD_DISC && loadEnable == false) {
 			/*Plane angle routine*/
 			tempPlaneAngle = (data & 0b00110000)>>4;
 			switch(tempPlaneAngle) {
@@ -249,18 +257,7 @@ void UARTIntHandler(void) {
 			}
 
 		} else {
-/*			loadEnable = true;
-	        reload();
-			int confidenceCheck = 0;
-			while(confidenceCheck < LOAD_POSITION_CONFIDENCE) {
-				throw_counter = QEIPositionGet(QEI0_BASE);
-				if(moveThrower(des_throw_counter) == 1) {
-					confidenceCheck++;
-				} else {
-					confidenceCheck = 0;
-				}
-			}
-			loadEnable = false;*/
+			loadEnable = true;
 	    }
 	}
 	else{
@@ -291,17 +288,27 @@ void UART0Handler(void) {
 		reload_manual(loader1,up);
 	} else if(char_data == 'd') {
 		reload_manual(loader1,down);
-	} else if(char_data == 'r') {
+	} else if(char_data == 't') {
+        reload_manual(loader2,up);
+    } else if(char_data == 'b') {
+        reload_manual(loader2,down);
+    } else if(char_data == 'r') {
 		if(reload() == -1) {
 			UART_TransmitString("Err :: Limit error\r\n",0);
 		} else {
 			UART_TransmitString("Loading :: \r\n",0);
 		}
 	} else if(char_data == 's') {
-        UART_TransmitString("Servo angle 1 :: \r\n",0);
+        UART_TransmitString("Servo angle 1 loader 1 :: \r\n",0);
 	    moveServo(SERVO_ANGLE1,0);                                  //Servo hit
 	} else if(char_data == 'a') {
-        UART_TransmitString("Servo angle 2 :: \r\n",0);
+        UART_TransmitString("Servo angle 2 loader 1:: \r\n",0);
         moveServo(SERVO_ANGLE2,0);                                  //Servo hit
+    } else if(char_data == 'g') {
+        UART_TransmitString("Servo angle 1 loader 2:: \r\n",0);
+        moveServo(SERVO_ANGLE1,1);                                  //Servo hit
+    } else if(char_data == 'f') {
+        UART_TransmitString("Servo angle 2 loader 2:: \r\n",0);
+        moveServo(SERVO_ANGLE2,1);                                  //Servo hit
     }
 }
