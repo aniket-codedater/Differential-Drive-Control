@@ -7,7 +7,8 @@ volatile uint8_t system_going_0_from_top = 0;
 
 bool limitFlag[2][2] = {{false,false},{false,false}};
 int8_t servoID[2];
-
+int whiteConfidenceLevel[2] = {100,0};
+int blackConfidenceLevel[2] = {0,100};
 void resetLoad(void) {
 	reload_in_progress = 0;
 	no_of_discs_loaded = 0;
@@ -53,14 +54,14 @@ void loadInit(void) {
 	GPIOPinTypeGPIOOutput(LOAD_MOTOR2_PORT,LM21|LM22);
 	//gpio for solenoid valve
 	SYSCTLPERIPH_SOLENOID;
-	GPIOPinTypeGPIOOutput(SOLENOID_PORT,SOLENOID_PIN);
-	GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN,(1<<SOLENOID_PIN_MASK));
+	GPIOPinTypeGPIOOutput(SOLENOID_PORT,SOLENOID_PIN1|SOLENOID_PIN2);
+	GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN1|SOLENOID_PIN2,(1<<SOLENOID_PIN_MASK2));
 	//limit switch
-	SYSCTLPERIPH_LIMIT1_SWITCH;//limit switch for mech 1
+	/*SYSCTLPERIPH_LIMIT1_SWITCH;//limit switch for mech 1
 	GPIOPinTypeGPIOInput(LIMIT1_SWITCH_PORT, LIMIT1_SWITCH_PIN1|LIMIT1_SWITCH_PIN2);
 	SYSCTLPERIPH_LIMIT2_SWITCH;//limit switch for mech 2
 	GPIOPinTypeGPIOInput(LIMIT2_SWITCH_PORT, LIMIT2_SWITCH_PIN1|LIMIT2_SWITCH_PIN2);
-
+*/
 	//servo init
 	servoID[loader1] =	servoInit(loader1);
 	moveServo(SERVO_ANGLE2,servoID[loader1]);
@@ -129,8 +130,8 @@ int IRstateConfidenceCheck(uint8_t mech_no)
 {
 	long int black_state_confidence = 0;
 	long int white_state_confidence = 0;
-	long int black_confidence_level = 100;
-	long int white_confidence_level = 100;
+	long int black_confidence_level = blackConfidenceLevel[mech_no];
+	long int white_confidence_level = whiteConfidenceLevel[mech_no];
 
 	if(system_going_0_from_top == 1)
 	{
@@ -199,41 +200,50 @@ void reload_manual(uint8_t loader_,uint8_t dir) {
 
 int8_t reload(void)
 {
-	uint8_t loaderID;
-	reload_in_progress = 1;
-	GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN,0); 						//Piston up
+    if(loadEnable == true) {
+        uint8_t loaderID;
+        reload_in_progress = 1;
+        GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN1,(1<<SOLENOID_PIN_MASK1));                         //Piston up
+        GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN2,0);                         //Piston up
 
-//	if(no_of_discs_loaded < MAX_LOAD_DISK ) {							//Select loader
-		loaderID = loader1;
-//	} else if(no_of_discs_loaded >= MAX_LOAD_DISK ) {
-//		loaderID = loader2;
-//	}
-	start_color = -1;
-	while(start_color == -1) {
-		start_color = IRstateConfidenceCheck(loaderID);							//Start color detection
-	}
-	if(moveLoader(loaderID,start_color,up) == -1) { 		//Move loader
-		return -1;
-	}
-	no_of_discs_loaded++;
-	moveServo(SERVO_ANGLE2,servoID[loaderID]);									//Servo hit
-	SysCtlDelay(SERVO_DELAY);
-	moveServo(SERVO_ANGLE1,servoID[loaderID]);
-	SysCtlDelay(SERVO_DELAY);
-	moveServo(SERVO_ANGLE2,servoID[loaderID]);
-	SysCtlDelay(SERVO_DELAY);
+        if(no_of_discs_loaded > 2*MAX_LOAD_DISK - 1) {
+           return -1;
+        }
+        if(no_of_discs_loaded < MAX_LOAD_DISK ) {                           //Select loader
+            loaderID = loader1;//loader1
+        } else if(no_of_discs_loaded >= MAX_LOAD_DISK) {
+          loaderID = loader2;//loader2
+        } else {
+            return -1;
+        }
+        start_color = -1;
+        while(start_color == -1) {
+            start_color = IRstateConfidenceCheck(loaderID);                         //Start color detection
+        }
+        if(moveLoader(loaderID,start_color,up) == -1) {         //Move loader
+            return -1;
+        }
+        no_of_discs_loaded++;
+        moveServo(SERVO_ANGLE2,servoID[loaderID]);                                  //Servo hit
+        SysCtlDelay(SERVO_DELAY/2);
+        moveServo(SERVO_ANGLE1,servoID[loaderID]);
+        SysCtlDelay(SERVO_DELAY);
+        moveServo(SERVO_ANGLE2,servoID[loaderID]);
+        SysCtlDelay(SERVO_DELAY/8);
 
-	GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN,(1<<SOLENOID_PIN_MASK));	//Piston down
-/*
-	if(no_of_discs_loaded >= (2*MAX_LOAD_DISK)) {
-		bring_system_to_0_from_top(loader2);
-		no_of_discs_loaded = 0;
-	} else if(no_of_discs_loaded >= MAX_LOAD_DISK) {
-		bring_system_to_0_from_top(loader1);
-	}
-*/
-	reload_in_progress = 0;
-	return 1;
+        GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN1,0);                         //Piston down
+        GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN2,(1<<SOLENOID_PIN_MASK2));                         //Piston down
+
+        reload_in_progress = 0;
+        if(no_of_discs_loaded >= (2*MAX_LOAD_DISK)) {
+            return -1;
+        } else if(no_of_discs_loaded >= MAX_LOAD_DISK) {
+            return -2;
+        }
+        return 1;
+    } else {
+        return 1;
+    }
 }
 
 

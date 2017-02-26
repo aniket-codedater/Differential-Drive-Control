@@ -22,10 +22,12 @@
 
 extern int shootComplete,triggered;
 extern volatile long int throw_counter;
-extern long int des_throw_counter, FIRST_STAGE;
+extern long int des_throw_counter, FIRST_STAGE,SECOND_STAGE;
 extern bool steady;
 extern float throw_angle;
-
+extern bool loadComplete;
+extern bool loaderChange;
+extern int semiCircle;
 long int loadPoint(void);
 int8_t moveThrower(long int desiredCount);
 void shootDisc(bool shootState);

@@ -15,7 +15,7 @@
 
 void testMotor(int motor, int PWM);
 void testBothMotor(int PWM_a, int PWM_b);
-void testEncoder(int encoder);
-void testBothEncoder(void);
+void testEncoder(int encoder,int rpm);
+void testBothEncoder(int rpmA,int rpmB);
 
 #endif /* HWTEST_H_ */

@@ -27,14 +27,14 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 
 #define PIDfrequency 						100
 #define PWMfrequency 						2500
-#define MAX_LOAD_DISK 						13
-#define LOAD_POSITION_CONFIDENCE			5000
+#define MAX_LOAD_DISK 						11
+#define LOAD_POSITION_CONFIDENCE			1000
 /* Throwing macros*/
 #define SYSCTLPERIPH_THROW_MOTOR		 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA)
 #define THROW_MOTOR_PORT 					GPIO_PORTA_BASE
-#define TM1 								GPIO_PIN_7
+#define TM1 								GPIO_PIN_5
 #define TM2 								GPIO_PIN_6
-#define TM1_MASK 							0b10000000
+#define TM1_MASK 							0b00100000
 #define TM2_MASK 							0b01000000
 #define SYSCTLPERIPH_THROW_ENC				SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF)
 #define THROW_ENCODER_PORT					GPIO_PORTF_BASE
@@ -47,10 +47,10 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 /* Angle change macros*/
 #define SYSCTLPERIPH_ANGLE_MOTOR 			SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE)
 #define ANGLE_MOTOR_PORT 					GPIO_PORTE_BASE
-#define AM1 								GPIO_PIN_2
-#define AM2 								GPIO_PIN_3
-#define AM1_MASK 							0b00000100
-#define AM2_MASK 							0b00001000
+#define AM1 								GPIO_PIN_3
+#define AM2 								GPIO_PIN_2
+#define AM1_MASK 							0b00001000
+#define AM2_MASK 							0b00000100
 #define SYSCTLPERIPH_ANGLE_ENC 				SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF)
 #define ANGLE_ENCODER_PORT					GPIO_PORTF_BASE
 #define ANGLE_ENCODER_CHANNELA				GPIO_PIN_3
@@ -65,12 +65,12 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 #define LOAD_MOTOR2_PORT 					GPIO_PORTC_BASE
 #define LM11 								GPIO_PIN_4
 #define LM12 								GPIO_PIN_3
-#define LM21 								GPIO_PIN_5
-#define LM22 								GPIO_PIN_6
+#define LM21 								GPIO_PIN_6
+#define LM22 								GPIO_PIN_5
 #define LM11_MASK 							4
 #define LM12_MASK 							3
-#define LM21_MASK 							5
-#define LM22_MASK 							6
+#define LM21_MASK 							6
+#define LM22_MASK 							5
 /* IR definitions */
 #define SYSCTLPERIPH_IR1 					SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA)
 #define SYSCTLPERIPH_IR2 					SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC)
@@ -84,10 +84,13 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 #define WHITE2 								1<<IR2_PIN_MASK
 #define BLACK 								0
 /* Solenoid definitions */
-#define SYSCTLPERIPH_SOLENOID 				SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB)
-#define SOLENOID_PORT				 		GPIO_PORTB_BASE
-#define SOLENOID_PIN 						GPIO_PIN_7
-#define SOLENOID_PIN_MASK 					7
+#define SYSCTLPERIPH_SOLENOID 				SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD)
+#define SOLENOID_PORT				 		GPIO_PORTD_BASE
+#define SOLENOID_PIN1 						GPIO_PIN_2
+#define SOLENOID_PIN_MASK1 					2
+#define SOLENOID_PIN2                       GPIO_PIN_3
+#define SOLENOID_PIN_MASK2                  3
+
 /* Servo macros*/
 #define SERVO1_PIN							M0PWM2
 #define SERVO2_PIN							M1PWM1

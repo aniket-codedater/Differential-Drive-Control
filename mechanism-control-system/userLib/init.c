@@ -69,6 +69,9 @@ void uart1Init(void) {
 	GPIOPinConfigure(GPIO_PB1_U1TX);
 	GPIOPinTypeUART(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 	UARTConfigSetExpClk(UART1_BASE, SysCtlClockGet(), 38400,(UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
+	UARTFIFODisable(UART1_BASE);
+    IntEnable(INT_UART1);
+    UARTIntEnable(UART1_BASE, UART_INT_RX);
 }
 
 void uart5Init(void) {

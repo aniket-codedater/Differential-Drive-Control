@@ -76,10 +76,29 @@ void shootDisc(bool shootState) {
             shootComplete = 0;
             setPWM(minPWM_throw,throw_motor);
         } else {
-            shootComplete = moveThrower(des_throw_counter); //moveThrower(loadPoint());
+            if(loaderChange == true) {
+                //shootComplete = moveThrower(loadPoint());
+                 moveThrower(des_throw_counter);
+            } else {
+                //shootComplete = moveThrower(loadPoint() - TICK_PER_REV*0.5);
+                 moveThrower(des_throw_counter);
+            }
+            if(shootComplete == true) {
+                loadComplete = false;
+            }
         }
     } else {
-       moveThrower(des_throw_counter);
+        if(loadComplete == true) {
+            moveThrower(des_throw_counter);
+        } else {
+            if(loaderChange == true) {
+               // moveThrower(des_throw_counter);
+                 moveThrower(loadPoint());
+            } else {
+                //moveThrower(des_throw_counter);
+                 moveThrower(loadPoint() - TICK_PER_REV*0.5);
+            }
+        }
     }
 }
 

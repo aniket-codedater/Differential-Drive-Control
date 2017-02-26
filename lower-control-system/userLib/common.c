@@ -8,24 +8,24 @@ void setPWM(int pwm,int i) {
 	}
 	if(i == A) {
 		if(pwm > 0) {
-			GPIOPinWrite(motorDirectionRegister,A1|A2,0x01);
+			GPIOPinWrite(motorDirectionRegister,A1|A2,(1<<A2_MASK));
 			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, pwm);
 		} else if(pwm < 0) {
-			GPIOPinWrite(motorDirectionRegister,A1|A2,0x02);
+			GPIOPinWrite(motorDirectionRegister,A1|A2,(1<<A1_MASK));
 			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, -pwm);
 		} else {
-			GPIOPinWrite(motorDirectionRegister,A1|A2,0x00);
+			GPIOPinWrite(motorDirectionRegister,A1|A2,(1<<A2_MASK)|(1<<A1_MASK));
 			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, 1);
 		}
 	} else if(i == B) {
 		if(pwm > 0) {
-			GPIOPinWrite(motorDirectionRegister,B1|B2,0x08);
+			GPIOPinWrite(motorDirectionRegister,B1|B2,(1<<B1_MASK));
 			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, pwm);
 		} else if(pwm < 0) {
-			GPIOPinWrite(motorDirectionRegister,B1|B2,0x04);
+			GPIOPinWrite(motorDirectionRegister,B1|B2,(1<<B2_MASK));
 			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, -pwm);
 		} else {
-			GPIOPinWrite(motorDirectionRegister,B1|B2,0x00);
+			GPIOPinWrite(motorDirectionRegister,B1|B2,(1<<B2_MASK)|(1<<B1_MASK));
 			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, 1);
 		}
 	}
@@ -34,11 +34,11 @@ void setPWM(int pwm,int i) {
 int calculateRPM(int i) {
 	if(i == A) {
 		int rpm = (QEIVelocityGet(QEI0_BASE)*QEIDirectionGet(QEI0_BASE))*QEIfrequency;
-		float RPM = rpm * 0.015;
+		float RPM = rpm * (60/(PPR*4));
 		return RPM;
 	} else if(i == B) {
-		int rpm = (-QEIVelocityGet(QEI1_BASE)*QEIDirectionGet(QEI1_BASE))*QEIfrequency;
-		float RPM = rpm * 0.015;
+		int rpm = (QEIVelocityGet(QEI1_BASE)*QEIDirectionGet(QEI1_BASE))*QEIfrequency;
+		float RPM = rpm * (60/(PPR*4));
 		return RPM;
 	} else {
 		return 0;

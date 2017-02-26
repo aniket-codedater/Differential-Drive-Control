@@ -7,9 +7,14 @@
 #define LIMIT_ENABLE	0
 #define SERVO_ANGLE1	30.0
 #define SERVO_ANGLE2	150.0
-#define SERVO_DELAY		15000000
+#define SERVO_DELAY		20000000
 enum {up, down};
 
+extern volatile int8_t start_color,transition_color;
+extern volatile uint8_t reload_in_progress;
+extern volatile uint8_t no_of_discs_loaded;
+extern volatile uint8_t system_going_0_from_top;
+extern bool loadEnable;
 void resetLoad(void);
 void loadInit(void);
 int8_t reload(void);

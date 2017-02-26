@@ -55,16 +55,14 @@ void testBothMotor(int PWM_a,int PWM_b) {
  *  encoder 	: A or B ( e.g. testEncoder(A); )
  * */
 
-void testEncoder(int encoder) {
-	int32_t maxPWM_ = SysCtlClockGet()/(PWMfrequency*64);
-	testMotor(encoder,maxPWM_/2);
+void testEncoder(int encoder, int rpm) {
+	testMotor(encoder,rpm);
 	qeiInit();
 	IntMasterEnable();
 }
 
-void testBothEncoder(void) {
-	int32_t maxPWM_ = SysCtlClockGet()/(PWMfrequency*64);
-	testBothMotor(maxPWM_/2,maxPWM_/2);
+void testBothEncoder(int rpmA,int rpmB) {
+	testBothMotor(rpmA,rpmB);
 	qeiInit();
 	IntMasterEnable();
 }

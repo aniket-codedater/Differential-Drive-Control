@@ -1,4 +1,4 @@
-#define HW_TEST 1
+#define HW_TEST 0
 
 #if HW_TEST == 1
 #include "HWtest.h"
@@ -9,12 +9,12 @@
 #include "userLib/pidController.h"
 #include "userLib/movingArray.h"
 
-#define KP_motorA 0.05
+#define KP_motorA 1.0
 #define KI_motorA 0.0
-#define KD_motorA 0.3
-#define KP_motorB 0.05
+#define KD_motorA 6.0
+#define KP_motorB 1.0
 #define KI_motorB 0.0
-#define KD_motorB 0.3
+#define KD_motorB 6.0
 
 volatile float desiredRPM[2] = {0.0,0.0}, currentRPM[2] = {0.0,0.0}, out[2] = {0.0,0.0},bufferDesiredRPM[2] = {0.0,0.0};
 int uartReceiveCount = 0;
@@ -41,15 +41,16 @@ int main() {
 	}
 #elif HW_TEST == 1
 	/*Type hardware test codes here*/
-	testMotor(A,maxPWM/2);
-	testMotor(B,maxPWM/2);
-	qeiInit();
-	testBothEncoder();
+	//testMotor(A,maxPWM/2);
+	//testMotor(B,maxPWM/2);
+	testBothEncoder(maxPWM/4,maxPWM/4);//-maxPWM/2.0);
 	while(1) {
-		UART_OutDec(currentRPM[A],0);
-		UARTCharPut(UART0_BASE,',');
-		UART_OutDec(currentRPM[B],0);
-		UARTCharPut(UART0_BASE,0x0D);
+	    GraphPlot0(currentRPM[A],desiredRPM[A],currentRPM[B],desiredRPM[B]);
+//		UART_OutDec(currentRPM[A],0);
+//		UARTCharPut(UART0_BASE,',');
+//		UART_OutDec(currentRPM[B],0);
+//		UARTCharPut(UART0_BASE,0x0D);
+
 	}
 #endif
 
@@ -74,8 +75,8 @@ void UARTIntHandler(void) {
 				break;
 			case 1:
 				bufferDesiredRPM[B] = ((data * ((data & 0x01) ? -1 : 1)));
-				desiredRPM[A] = bufferDesiredRPM[A];
-				desiredRPM[B] = bufferDesiredRPM[B];
+				desiredRPM[A] = bufferDesiredRPM[A] * GEAR_RATIO;
+				desiredRPM[B] = bufferDesiredRPM[B] * GEAR_RATIO;
 				break;
 		}
 		uartReceiveCount++;
