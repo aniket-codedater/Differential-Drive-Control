@@ -6,18 +6,20 @@
 #include <wiringPi.h>
 #include <stdio.h>
 #include "mechanismConfig.h"
+#include "encoderGrey.h"
 #define NUMBER_OF_FAST_BUTTON 4
 #define FAST_SEND_COUNTER_CONFIDENCE 50
 float headingOffset = 0.0;
 int shoot = 0, load = 0, planeAngle = 0;
 int fast_send_counter[NUMBER_OF_FAST_BUTTON]={0};
-enum {square_enum,circle_enum,r1_enum,r2_enum,triangle_enum,cross_enum};
-enum {manual_enum,semiauto_enum,auto_enum};
 bool buttonState[3][6] = {false};
 bool decremental = false;
-float rpmpercent1=1.0;
 bool mechanismEnable = false;
 int mechanismMode = manual_enum; 
+int heightMode = -1;
+bool resetFlag = false;
+extern struct encoder *encoderheight;
+bool junctionAutoEnable = false;
 
 void resetPS2_2k17() {
 	mode = 0;
@@ -42,6 +44,9 @@ void resetPS2_2k17() {
 	}
 	decremental = false;
 	mechanismEnable = false;
+	heightMode = -1;
+	resetFlag = false;
+	junctionAutoEnable = false;
 }
 
 bool mechanismState() {
@@ -56,10 +61,26 @@ int getMechanismMode(void) {
 	}
 }
 
+int getHeightMode(void) {
+	return heightMode;
+}
+
+void writeHeightMode(int i) {
+	heightMode = i;
+}
+
 void writeDesiredJunction(int junc) {
 	if(junc != -1) {
 		desiredJunction = junc;
 	}
+}
+
+int getJunctionAutomation() {
+	return junctionAutoEnable;
+}
+
+void writeJunctionAutomation(bool state) {
+	junctionAutoEnable = state;
 }
 
 int ps2Manager(int junction,int buttonEnum ,bool buttonPressState, int pole) {
@@ -76,6 +97,7 @@ int ps2Manager(int junction,int buttonEnum ,bool buttonPressState, int pole) {
 			break;
 		//Mechanism mode
 		case manual_enum:
+			heightMode = -1;
 			if(buttonPressState) {
 				buttonState[manual_enum][buttonEnum] = true;
 				return 0;
@@ -85,6 +107,7 @@ int ps2Manager(int junction,int buttonEnum ,bool buttonPressState, int pole) {
 			}
 			break;
 		case auto_enum:
+			heightMode = pole;
 			if(buttonPressState == true) {
 		        transmitMechanismPacket(pole);
 			}
@@ -117,15 +140,18 @@ void (L1_Pressed)() {
 		case -1:
 			mode = semiauto_enum;
 			break;
-		case manual_enum:
-			break;
 		case auto_enum:
 			transmitMechanismPacket(6);
+			writeHeightMode(6);
+			break;
+		default:
+			resetFlag = true;
 			break;
 	}
 }
 
 void (L1_Released)() {
+	resetFlag = false;
 	switch(getMechanismMode()) {
 		case -1:
 			mode = manual_enum;
@@ -153,13 +179,29 @@ void (square_Released)() {
 * Mode 0 : Shoot enable *
 */
 void (triangle_Pressed)() {
-	if(ps2Manager(2,triangle_enum,true,1) == 0) {
-	    transmitMechanismPacket(1,0,noChangeAngle,noChangeRPM,noChangePos);
+	switch(getMechanismMode()) {
+		case -1:
+			if(mode == semiauto_enum) {
+				prevJunctionCount = junctionCount;
+				junctionAutoEnable = true;
+			}
+			break;
+		default:
+			if(ps2Manager(2,triangle_enum,true,1) == 0) {
+			    transmitMechanismPacket(1,resetFlag,noChangeAngle,noChangeRPM,noChangePos);
+			}
 	}
 }
 
 void (triangle_Released)() {
-	ps2Manager(2,triangle_enum,false,1);
+	switch(getMechanismMode()) {
+		case -1:
+			prevJunctionCount = junctionCount;				
+			junctionAutoEnable = false;
+			break;
+		default:
+			ps2Manager(2,triangle_enum,false,1);
+	}
 }
 
 
@@ -180,7 +222,7 @@ void (circle_Released)() {
 */
 void (cross_Pressed)() {
 	if(ps2Manager(4,cross_enum,true,3) == 0) {
-		transmitMechanismPacket(0,1,noChangeAngle,noChangeRPM,noChangePos);	
+		transmitMechanismPacket(resetFlag,1,noChangeAngle,noChangeRPM,noChangePos);	
 	}
 }
 
@@ -192,16 +234,29 @@ void (cross_Released)() {
 * Mode 0 : Incremental/Decremental selector *
 */
 void (R1_Pressed)() {
-	ps2Manager(5,r1_enum,true,4);
-	if(buttonState[manual_enum][r1_enum] == true) {
-		decremental = true;
+	switch(getMechanismMode()) {
+		case -1:
+			mode = imu_enum;
+			break;
+		default:
+			ps2Manager(5,r1_enum,true,4);
+			if(buttonState[manual_enum][r1_enum] == true) {
+				decremental = true;
+			}
+			break;
 	}
 }
 
 void (R1_Released)() {
-	ps2Manager(5,r1_enum,false,4);
-	if(buttonState[manual_enum][r1_enum] == false) {
-		decremental = false;
+	switch(getMechanismMode()) {
+		case -1:
+			mode = manual_enum;
+			break;
+		default:
+			ps2Manager(5,r1_enum,false,4);
+			if(buttonState[manual_enum][r1_enum] == false) {
+				decremental = false;
+			}
 	}
 }
 
@@ -214,25 +269,37 @@ void (R2_Released)() {
 }
 
 void (R3_Pressed)() {
+	printf("prev height :::::::::::::::::::::::::::::::::::::::::::::%d",encoderheight->value);
+	resetEncoder(encoderheight);
 }
 
 void (R3_Released)() {
+	printf("set  height :::::::::::::::::::::::::::::::::::::::::::::%d",encoderheight->value);
 }
 
 void (L3_Pressed)() {
+
+	
 }
 
 void (L3_Released)() {
 }
 
 void (start_Pressed)() {
+	printf("Disconnecting Bluetooth Device\n");
+	endMechanism();
 }
 
 void (start_Released)() {
+	printf("Reconnecting Bluetooth Device\n");
+	initMechanism();
 }
 
 void (select_Pressed)() {
 	mechanismEnable = !mechanismEnable;
+	if(mechanismEnable == true) {
+		mode = manual_enum;
+	}
 }
 
 void (select_Released)() {
@@ -258,7 +325,7 @@ void initPS2_2k17() {
 void modeChange() {
     curMode = getMode();
     if(curMode!=preMode) {
-//	headingOffset = getHeading();
+	headingOffset = getHeading();
         switch(curMode) {
             case 0:
             case 1: 
@@ -279,11 +346,11 @@ void rotateCheck() {
 				break;
 			case -128:
 				rotatePressed = 1;
-				rotateDirection = clk;
+				rotateDirection = antiClk;
 				break;
 			case 127:
 				rotatePressed = 1;
-				rotateDirection = antiClk;
+				rotateDirection = clk;
 				break;
 		}
 	} else {
@@ -337,33 +404,22 @@ void transmitMechanismControl(){
      if((buttonState[manual_enum][triangle_enum] == false) && (buttonState[manual_enum][cross_enum] == false)) {
         if(buttonFastSend(buttonState[manual_enum][circle_enum],circle_enum)) {					//Circle
         	if(decremental == false) {
-				transmitMechanismPacket(0,0,increaseAngle,noChangeRPM,noChangePos);
+				transmitMechanismPacket(resetFlag,resetFlag,increaseAngle,noChangeRPM,noChangePos);
 			} else {
-		        	transmitMechanismPacket(0,0,decreaseAngle,noChangeRPM,noChangePos);
+		        	transmitMechanismPacket(resetFlag,resetFlag,decreaseAngle,noChangeRPM,noChangePos);
 			}		
         } else if(buttonFastSend(buttonState[manual_enum][square_enum],square_enum)) {          //Square
         	if(decremental == false) {
-				transmitMechanismPacket(0,0,noChangeAngle,noChangeRPM,increasePos);        		
+				transmitMechanismPacket(resetFlag,resetFlag,noChangeAngle,noChangeRPM,increasePos);        		
 			} else {
-	        	transmitMechanismPacket(0,0,noChangeAngle,noChangeRPM,decreasePos);
+	        	transmitMechanismPacket(resetFlag,resetFlag,noChangeAngle,noChangeRPM,decreasePos);
 			}		
         } else if(buttonFastSend(buttonState[manual_enum][r2_enum],r2_enum)) {                 //R2
             if(decremental == false) {
-				if(rpmpercent1>1)
-				rpmpercent1=1;
-				else if(rpmpercent1<1)
-				rpmpercent1+=0.05;
-				transmitMechanismPacket(0,0,noChangeAngle,increaseRPM,noChangePos); 
-				       		
-			} else {
-				if(rpmpercent1 > 0.01)	{
-					rpmpercent1 -= 0.05;
-				}
-				else {
-					rpmpercent1 = 0.1;
-				}				
-	        	transmitMechanismPacket(0,0,noChangeAngle,decreaseRPM,noChangePos);
-			}		
+			transmitMechanismPacket(resetFlag,resetFlag,noChangeAngle,increaseRPM,noChangePos);        		
+		} else {					
+	        	transmitMechanismPacket(resetFlag,resetFlag,noChangeAngle,decreaseRPM,noChangePos);
+		}		
         }
      }
 }

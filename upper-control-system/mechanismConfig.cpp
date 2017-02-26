@@ -12,7 +12,9 @@ int printer_shoot = 0,printer_load = 0,printer_planeAngle = 0,printer_dataFrame 
 void initMechanism() {
 	atmegaPort = serialOpen(USBTTLPORT,38400);
 }
-
+void endMechanism() {
+	serialClose(atmegaPort);
+}
 bool transmitMechanismPacket(int pole) {
 	if(mechanismState() == true) {
 		unsigned char dataFrame = 0b11111000;
@@ -37,9 +39,6 @@ bool transmitMechanismPacket(int shoot_, int load_, int planeAngle_, int rpmChan
 		dataFrame |= planeAngle_ << 4;
 		dataFrame |= rpmChange_ << 2;
 		dataFrame |= posChange_;
-		if((dataFrame&0xC0) == 0xC0) {
-			dataFrame = 0x00;	
-		}
 		serialPutchar(atmegaPort, dataFrame);
 		printer_shoot = shoot_;
 		printer_load = load_;

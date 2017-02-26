@@ -12,6 +12,7 @@ int ps2_getX(void);
 int ps2_getY(void);
 int ps2_getRY();
 int ps2_getRX();
+int ps2_getY_dir();
 
 void enableCircleButton(void (*pressed)(void), void (*released)(void));
 void enableSquareButton(void (*pressed)(void), void (*released)(void));

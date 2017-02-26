@@ -7,8 +7,8 @@
 #define RADIUSA wheelRadius
 #define RADIUSB wheelRadius
 #define pi 3.14159
-#define NumberOfTicksPerRevolution1 3950.0
-#define NumberOfTicksPerRevolution2 3950.0
+#define NumberOfTicksPerRevolution1 705.0
+#define NumberOfTicksPerRevolution2 700.0
 
 enum{X,Y,Phi};
 enum{A,B};

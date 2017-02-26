@@ -26,7 +26,7 @@ extern long int des_throw_counter, FIRST_STAGE,SECOND_STAGE;
 extern bool steady;
 extern float throw_angle;
 extern bool loadComplete;
-extern bool loaderChange;
+extern uint8_t currLoaderID;
 extern int semiCircle;
 long int loadPoint(void);
 int8_t moveThrower(long int desiredCount);

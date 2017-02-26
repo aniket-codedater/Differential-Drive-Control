@@ -2,7 +2,7 @@
 
 volatile int8_t start_color,transition_color;
 volatile uint8_t reload_in_progress = 0;
-volatile uint8_t no_of_discs_loaded = 0;
+volatile uint8_t no_of_discs_loaded[2] = {0,0};
 volatile uint8_t system_going_0_from_top = 0;
 
 bool limitFlag[2][2] = {{false,false},{false,false}};
@@ -11,7 +11,8 @@ int whiteConfidenceLevel[2] = {100,0};
 int blackConfidenceLevel[2] = {0,100};
 void resetLoad(void) {
 	reload_in_progress = 0;
-	no_of_discs_loaded = 0;
+	no_of_discs_loaded[loader1] = 0;
+	no_of_discs_loaded[loader2] = 0;
 	system_going_0_from_top = 0;
 }
 
@@ -198,51 +199,39 @@ void reload_manual(uint8_t loader_,uint8_t dir) {
 	}
 }
 
-int8_t reload(void)
+int8_t reload(uint8_t loaderID)
 {
     if(loadEnable == true) {
-        uint8_t loaderID;
         reload_in_progress = 1;
         GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN1,(1<<SOLENOID_PIN_MASK1));                         //Piston up
         GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN2,0);                         //Piston up
 
-        if(no_of_discs_loaded > 2*MAX_LOAD_DISK - 1) {
+        if(no_of_discs_loaded[loaderID] > MAX_LOAD_DISK - 1) {
            return -1;
-        }
-        if(no_of_discs_loaded < MAX_LOAD_DISK ) {                           //Select loader
-            loaderID = loader1;//loader1
-        } else if(no_of_discs_loaded >= MAX_LOAD_DISK) {
-          loaderID = loader2;//loader2
         } else {
-            return -1;
-        }
-        start_color = -1;
-        while(start_color == -1) {
-            start_color = IRstateConfidenceCheck(loaderID);                         //Start color detection
-        }
-        if(moveLoader(loaderID,start_color,up) == -1) {         //Move loader
-            return -1;
-        }
-        no_of_discs_loaded++;
-        moveServo(SERVO_ANGLE2,servoID[loaderID]);                                  //Servo hit
-        SysCtlDelay(SERVO_DELAY/2);
-        moveServo(SERVO_ANGLE1,servoID[loaderID]);
-        SysCtlDelay(SERVO_DELAY);
-        moveServo(SERVO_ANGLE2,servoID[loaderID]);
-        SysCtlDelay(SERVO_DELAY/8);
+            start_color = -1;
+            while(start_color == -1) {
+                start_color = IRstateConfidenceCheck(loaderID);                         //Start color detection
+            }
+            if(moveLoader(loaderID,start_color,up) == -1) {         //Move loader
+                return -1;
+            }
+            no_of_discs_loaded[loaderID]++;
+            moveServo(SERVO_ANGLE2,servoID[loaderID]);                                  //Servo hit
+            SysCtlDelay(SERVO_DELAY/2);
+            moveServo(SERVO_ANGLE1,servoID[loaderID]);
+            SysCtlDelay(SERVO_DELAY);
+            moveServo(SERVO_ANGLE2,servoID[loaderID]);
+            SysCtlDelay(SERVO_DELAY/8);
 
-        GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN1,0);                         //Piston down
-        GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN2,(1<<SOLENOID_PIN_MASK2));                         //Piston down
+            GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN1,0);                         //Piston down
+            GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN2,(1<<SOLENOID_PIN_MASK2));                         //Piston down
 
-        reload_in_progress = 0;
-        if(no_of_discs_loaded >= (2*MAX_LOAD_DISK)) {
-            return -1;
-        } else if(no_of_discs_loaded >= MAX_LOAD_DISK) {
-            return -2;
+            reload_in_progress = 0;
+            return 1;
         }
-        return 1;
     } else {
-        return 1;
+        return -1;
     }
 }
 

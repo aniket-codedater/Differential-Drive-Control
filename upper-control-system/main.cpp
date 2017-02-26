@@ -1,3 +1,5 @@
+#define PRINT 0
+
 // Compile with -lpthread -lwiringPi
 #include <stdio.h>
 #include <unistd.h>
@@ -21,6 +23,8 @@
 #include "encoderGrey.h"
 #include "odometry.h"
 #include "automation.h"
+
+#define mechanismLED 31
 
 //Interrupt function definitions
 bool ps2Ready = false;
@@ -47,10 +51,10 @@ float arenaJunction[5] = {350.0,550.0,750.0,950.0,1150.0};
 
 /* PS2 variables */
 bool rotateWasPressed = false;
+bool imuFeedback = false;
 
 /* Tiva packet variables */
 extern int shoot,load,planeAngle;
-//extern float rpmpercent1;
 int prev_right_analog_stick = 128, right_analog_stick = 128;
 int desiredHeight = 0;
 int maxPWM = 0, minPWM = 0;
@@ -60,6 +64,9 @@ struct encoder *encoderheight;
 struct lineSensor lsF,lsB;
 float lsF_error = 0, lsF_prev_error = 0;
 float lsB_error = 0, lsB_prev_error = 0;
+bool junctionAutomation = false;
+int junctionCount = 0, prevJunctionCount = 0;
+bool prevNANDstate[2] = {false,false}, NANDstate[2] = {false,false};
 
 /* Odometry variables */
 struct encoder *encoder1;
@@ -78,6 +85,10 @@ void reset() {
 //	resetPIDvar(lineControl_bw);
 //	resetPIDvar(heightControl);
 //	resetPIDvar(odometryControl);
+	NANDstate[0] = false;
+	NANDstate[1] = false;
+	prevNANDstate[0] = false;
+	prevNANDstate[1] = true;
 
 /* Driving variables reset */	
 //	desiredHeading = 0.0;
@@ -103,10 +114,10 @@ void reset() {
 char encodeByte(int rpm) {
     if(rpm > maxRPM) {
         printf("Warning: Trying to send Velocity greater than 180. Limit : 180. Sending 180.\r\n");
-        rpm = 100; //must be even (maxRPM)
+        rpm = maxRPM; //must be even (maxRPM)
     } else if(rpm < -(maxRPM + 1)) {
         printf("Warning: Trying to send Velocity lesser than -181. Limit : -181. Sending -181.\r\n");
-        rpm = -99; // must be odd
+        rpm = -(maxRPM-1); // must be odd
     }
     if(rpm < 0) {
         rpm = -rpm;
@@ -125,11 +136,30 @@ void transmitDiffState(struct differentialState desiredDiffState) {
 
 
 //Function to read linesensors and preprocess it.
-void lineFeedback(void) {
-	if(digitalRead(lsF.NANDoutPin)) {
-		lsF_error = -readLineSensor(lsF); //- because the sensors are flipped
+
+void junctionFwd(void) {
+	if(prevNANDstate[0] != true) {
+		junctionCount++;	
+		printf("\n\n***Junction interruptF fired***\n\n");
 	}
-	if(lsF_error == -255) {
+}
+
+void junctionBack(void) {
+	if(prevNANDstate[1] != true) {
+		printf("\n\n***Junction interruptB fired***\n\n");
+	}
+}
+
+void lineFeedback(void) {
+	prevNANDstate[0] = NANDstate[0];
+	if(digitalRead(lsF.NANDoutPin)) {
+		lsF_error = readLineSensor(lsF);
+		NANDstate[0] = false;
+	} else {
+		NANDstate[0] = true;
+		junctionFwd();
+	}
+	if(lsF_error == 255) {
 		if(lsF_prev_error < 0) {
 			lsF_error = -50;
 		} else if(lsF_prev_error > 0) {
@@ -140,10 +170,16 @@ void lineFeedback(void) {
 	}
 	lsF_prev_error = lsF_error;
 	usleep(1000);	//readings skew if this is removed. Need further study : Aniket,20 October,2016
+
+	prevNANDstate[1] = NANDstate[1];
 	if(digitalRead(lsB.NANDoutPin)) {
-		lsB_error = -readLineSensor(lsB);
+		lsB_error = readLineSensor(lsB);
+		NANDstate[1] = false;
+	} else {
+		NANDstate[1] = true;
+		junctionBack();
 	}
-	if(lsB_error == -255) {
+	if(lsB_error == 255) {
 		if(lsB_prev_error < 0) {
 			lsB_error = -50;
 		} else if(lsB_prev_error > 0) {
@@ -156,12 +192,12 @@ void lineFeedback(void) {
 }
 
 void initHeightControl() {
-//	encoderheight = setupencoder(2,3);	
+	encoderheight = setupencoder(3,2);	
 	pinMode(heightMotorPin1,OUTPUT);
 	pinMode(heightMotorPin2,OUTPUT);
 	softPwmCreate(heightMotorPWM,0,255);
 	pinMode(relayButton,OUTPUT);
-	digitalWrite(relayButton,1);
+	digitalWrite(relayButton,0);
 	digitalWrite(heightMotorPin1,0);
 	digitalWrite(heightMotorPin2,0);
 	maxPWM = 128;
@@ -177,7 +213,7 @@ struct unicycleState getDesiredUnicycleState_manual(void) {
 			rotateWasPressed = true;
 	} else {
 		float vy, vx;
-		desiredState.vy = (128 - ps2_getY()) * maxVelocity / 128;
+		desiredState.vy = (128 - ps2_getY()) * maxVelocity * 0.25/ 128; /*Multiplied by 0.5 to reduce speed*/
 		dir_log(desiredState.vy);
 		desiredState.vx = 0;
 		if(rotateWasPressed == true) {
@@ -195,7 +231,12 @@ struct unicycleState getDesiredUnicycleState_manual(void) {
 			desiredPhi = radianToDegree((PI/2) - atan2(abs(desiredState.vy), desiredState.vx)); //Absolute of vy so that for negative v the angle does not go -ve and the robot does not turn. We want it to drive backwards
 		}
 		prev_desiredPhi = desiredPhi;
-		float error = desiredPhi - getHeading() + headingOffset;
+		float error;
+		if(imuFeedback == true) {
+			error = desiredPhi - getHeading() + headingOffset;			
+		} else {
+			error = 0.0;
+		}
 		error = majorAngleFilter(error);
 		(fabs(error) > HEADING_TOLERANCE) ? desiredState.w = PID(error, headingControl) : desiredState.w = 0;
 	}
@@ -207,9 +248,19 @@ struct unicycleState getDesiredUnicycleState_line(void) {
 	struct unicycleState desiredState;
 	float vy, vx;
 	lineFeedback();
-	printf("%f %f ;\n",lsF_error,lsB_error);
+	printf("LineSensor : F B : %f %f; \n",lsF_error,lsB_error);
 	desiredState.vx = 0;
-	desiredState.vy = ((128 - ps2_getY())/128.0) * maxVelocity;
+	if(getJunctionAutomation() == true) {
+		printf("Junction Automation :: ");
+		if((junctionCount - prevJunctionCount) == 0) {
+			desiredState.vy = ps2_getY_dir() * maxVelocity * 0.1;			
+		} else {
+			writeJunctionAutomation(false);
+			desiredState.vy = 0;
+		}
+	} else {
+		desiredState.vy = ((128 - ps2_getY())/128.0) * maxVelocity;
+	}
 	dir_log(desiredState.vy);
 	if(desiredState.vy > 0) {
 		desiredState.w = PID(lsF_error, lineControl_fw);
@@ -232,7 +283,7 @@ struct unicycleState getDesiredUnicycleState_auto(void) {
 	struct unicycleState desiredState;
 	float vy, vx;
 	lineFeedback();
-	printf("%f %f ;",lsF_error,lsB_error);
+	printf("LineSensor : F B : %f %f; \n",lsF_error,lsB_error);
 	desiredState.vx = 0;
 	desiredState.vy = velocityMap();
 	dir_log(desiredState.vy);
@@ -249,7 +300,7 @@ struct unicycleState getDesiredUnicycleState_auto(void) {
 			desiredState.w = PID(lsB_error, lineControl_bw);
 		}
 	}
-	printf(" %f %f; Last Junction = %d Desired Junction = %d \n",desiredState.vy,desiredState.vx,lastJunction,desiredJunction);
+	printf("Vy Vx : %f %f; Last Junction = %d Desired Junction = %d; \n",desiredState.vy,desiredState.vx,lastJunction,desiredJunction);
 	return desiredState;
 }
 
@@ -261,15 +312,32 @@ struct unicycleState getDesiredUnicycleState_mode() {
     int botMode = getMode();
     modeChange();
     switch(botMode) {
-            case 0: 
-                    return getDesiredUnicycleState_manual();
-                    break;
-            case 1: 
-		    return getDesiredUnicycleState_line();
-                    break;
-            case 2: 
-		    return getDesiredUnicycleState_auto();
-                    break;
+            case manual_enum: 
+#if PRINT==1
+			    printf("\n>>>>>>>>>>>>>Manual mode::<<<<<<<<<<<<<<\n");
+#endif
+		        imuFeedback = false;
+                return getDesiredUnicycleState_manual();
+                break;
+            case semiauto_enum: 
+#if PRINT==1
+			    printf("\n>>>>>>>>>>>>>Line mode::<<<<<<<<<<<<<<\n");
+#endif
+			    return getDesiredUnicycleState_line();
+                break;
+            case auto_enum: 
+#if PRINT==1
+			    printf("\n>>>>>>>>>>>>>Auto mode::<<<<<<<<<<<<<<\n");
+#endif
+			    return getDesiredUnicycleState_auto();
+                break;
+            case imu_enum: 
+#if PRINT==1
+			    printf("\n>>>>>>>>>>>>>IMU man mode::<<<<<<<<<<<<<<\n");
+#endif
+			    imuFeedback = true;
+			    return getDesiredUnicycleState_manual();
+                break;
     }
 }
 
@@ -280,7 +348,6 @@ void setPWM(float pwm, int i) {
 	if (pwm < -maxPWM) {
 		pwm = -maxPWM;
 	}
-	printf("%f is pwm;",pwm);
 	if(i == heightControl) {
 		if(fabs(pwm) < HEIGHT_TOLERANCE) {
 			digitalWrite(heightMotorPin1,1);
@@ -312,44 +379,68 @@ void timerHandler() {
 /*  Mode control Driving */
 		desiredDiffState = transformUniToDiff(getDesiredUnicycleState_mode());
 		transmitDiffState(desiredDiffState);
-	 	printf("%d %d %f\n",desiredDiffState.leftRPM,desiredDiffState.rightRPM,getHeading());
-
+#if PRINT==1
+	 	printf("LRPM RRPM HEAD : %d %d %f; ",desiredDiffState.leftRPM,desiredDiffState.rightRPM,getHeading());
+#endif
 /*  Height control */
-		right_analog_stick = ps2_getRY();
-printf("%d is ps2;",right_analog_stick);
-//		if(right_analog_stick == 128 && prev_right_analog_stick != 128) {
-//			desiredHeight = encoderheight->value;
-//		}
+	right_analog_stick = ps2_getRY();
+	if(getHeightMode() == -1 || right_analog_stick != 128) {
+		writeHeightMode(-1);
 		if(right_analog_stick == 128) {
-			digitalWrite(relayButton,1);
-//			float heightError = (encoderheight->value)- desiredHeight ;
-//			float out = PID(heightError,heightControl);
+			digitalWrite(relayButton,0);
 			setPWM(0,heightControl);
-//			printf("0 :: \n");						
+#if PRINT==1
+			printf("H : STOP; ");
+#endif						
+		} else {
+			digitalWrite(relayButton,1);
+			setPWM((ps2_getRY()-128)*0.75,heightControl);
+#if PRINT==1			
+			printf("H : MOVE; ");						
+#endif		
+		}		
+	} else {
+		float heightError = HEIGHT_PARAM[getHeightMode()] -  (encoderheight->value/HEIGHT_ENCODER_TICKS+5.0);
+		if(heightError > HEIGHT_TOLERANCE) {
+			digitalWrite(relayButton,1);
+			setPWM(-191,heightControl);		//255.0*0.75 = 191.0
+#if PRINT==1
+			printf("H AUTO : UP; ");					
+#endif	
+		} else if (heightError < -HEIGHT_TOLERANCE) {
+			digitalWrite(relayButton,1);
+			setPWM(191,heightControl);
+#if PRINT==1
+			printf("H AUTO : DOWN; ");	
+#endif
 		} else {
 			digitalWrite(relayButton,0);
-			setPWM((ps2_getRY()-128)*0.75,heightControl);
-//			printf("1 :: \n");						
+			setPWM(0,heightControl);
+#if PRINT==1
+			printf("H AUTO : STOP; ");		
+#endif
 		}
-		prev_right_analog_stick = right_analog_stick;
-
-/*Odometry*/
-//		distTravelled=getDistTravelled();
-//		printf("%d  %d\n",encoder1->value,encoder2->value);
-//		printf("x=%f,y=%f,phi=%f \n",getX(distTravelled),getY(distTravelled),180.0*getPhi()/pi);
-/* Saving data and status */
-//		std::ofstream data_file;
-//		data_file.open("data.log",std::ios::app);
-//		data_file << desiredDiffState.leftRPM << ";" << desiredDiffState.rightRPM << ";" << getHeading() << ";\n";
-//		data_file.close();
+	}
+	prev_right_analog_stick = right_analog_stick;
+#if PRINT==1
+	printf("%f Encoder Height : ",(encoderheight->value/HEIGHT_ENCODER_TICKS+5.0)); 
+#endif	
 	}
 	transmitMechanismControl();
 	if(mechanismState() == false) {
-		printf("Drive enable :: ");
+		digitalWrite(mechanismLED,0);
+#if PRINT==1
+		printf("Drive enable :: %d",printer_dataFrame);
+#endif
 	} else {
-		printf("Mechanism enable :: ");
+		digitalWrite(mechanismLED,1);
+#if PRINT==1
+		printf("Mechanism enable :: %d",printer_dataFrame);
+#endif
 	}
-//	printf(	"%d %d %d :: %d ::rmp:%f\n",printer_shoot,printer_load,printer_planeAngle,printer_dataFrame,rpmpercent1);
+#if PRINT==1
+	printf("\n");
+#endif
 }
 
 void init() {
@@ -364,18 +455,17 @@ void init() {
 	}
 
 /* Button and LED configurations */
-	if(wiringPiISR(headingRefButton, INT_EDGE_RISING, &reset)) {
-		printf("Reset Heading Button interrupt setup error\n");
-	}
+	pinMode(mechanismLED,OUTPUT);
+
 /* PS2 and IMU configuration */
 	enablePS2StatusInterrupt(&ps2Activated, &ps2Deactivated);
-//	enableIMUStatusInterrupt(&imuActivated, &imuDeactivated);
+	enableIMUStatusInterrupt(&imuActivated, &imuDeactivated);
 	enableSlowFuncInterrupt(&slowTimerHandler);
 	
 /* Odometry parameters and pin init */
-//	encoder1 = setupencoder(21,22);	
-//	encoder2 = setupencoder(23,24);
-//	initOdometry(encoder1,encoder2);
+	encoder1 = setupencoder(22,21);	
+	encoder2 = setupencoder(23,24);
+	initOdometry(encoder1,encoder2);
 
 //Height control pin init
 	initHeightControl();
@@ -390,35 +480,17 @@ void init() {
 
 //Interrupt on Junction occurence
 void junctionInterruptF(void) {
-/*	if(intF_flag){
-		if(forward) {
-			lastJunction++;
-			writeOdometry(arenaJunction[lastJunction-1] - distFromLS,Y);
-		}
-	}
-	intF_flag = true;
-*/
-//	printf("Junction interruptF fired\n");
 }
 
 void junctionInterruptB(void) {
-/*	if(intB_flag){
-		if(reverse) {
-			lastJunction--;
-			writeOdometry(arenaJunction[lastJunction-1] - distFromLS,Y);
-		}
-	}
-	intB_flag = true;
-*/
-//	printf("Junction interruptB fired\n");
 }
 
 int main() {
 	init();
 	rpiPort = serialOpen("/dev/ttyS0",38400);			/*Serial communication port established*/
 	initPIDController(0.05,0.0,0.02,headingControl);		/*PID controller for angular velocity in manual mode*/  //0.05,0.02
-	initPIDController(0.01,0.0,0.22,lineControl_fw);	//0.03,0.0,1.2	/*PID controller for angular velocity in linefollow_fw mode*/
-	initPIDController(0.01,0.0,0.22,lineControl_bw);	//0.03,0.0,1.2	/*PID controller for angular velocity in linefollow_bw mode*/
+	initPIDController(0.008,0.0,0.34,lineControl_fw);	//0.03,0.0,1.2	/*PID controller for angular velocity in linefollow_fw mode*/
+	initPIDController(0.007,0.0,0.345,lineControl_bw);	//0.03,0.0,1.2	/*PID controller for angular velocity in linefollow_bw mode*/
 	initPIDController(0.16,0.0,0.0,heightControl);
 	initPIDController(1.0,0.0,0.0,odometryControl);
 

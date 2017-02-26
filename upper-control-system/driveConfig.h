@@ -3,14 +3,13 @@
 
 /* Tolerance */
 #define HEADING_TOLERANCE 2
-#define HEIGHT_TOLERANCE 5
 
 /* GPIO pin def */
 #define headingRefButton 7
 #define heightMotorPin1 27
-#define heightMotorPin2 29
-#define heightMotorPWM 	28
-#define relayButton 26
+#define heightMotorPin2 28
+#define heightMotorPWM 	26
+#define relayButton 29
 
 extern bool ps2Ready;
 extern bool imuReady;
@@ -34,14 +33,14 @@ enum {headingControl,lineControl_fw,lineControl_bw,heightControl,odometryControl
 struct differentialState {int leftRPM; int rightRPM;};
 
 //Bot specifications
-#define wheelRadius 				5.0
+#define wheelRadius 				6.5 // prev value 5
 #define wheelCircumference 			(2 * PI * wheelRadius)
-#define L					96.0
-#define wRotate 				1.0
+#define L					105.5 //prrev val 96
+#define wRotate 				0.75
 #define distFromLS				80.0
 
 //Motion constraints specifications
-#define maxRPM			100	//in rpm
+#define maxRPM			200	//in rpm
 #define maxVelocity		300 //in cm/s
 
 //Frequency specifications

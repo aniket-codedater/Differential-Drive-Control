@@ -12,12 +12,12 @@ enum {up, down};
 
 extern volatile int8_t start_color,transition_color;
 extern volatile uint8_t reload_in_progress;
-extern volatile uint8_t no_of_discs_loaded;
+extern volatile uint8_t no_of_discs_loaded[2];
 extern volatile uint8_t system_going_0_from_top;
 extern bool loadEnable;
 void resetLoad(void);
 void loadInit(void);
-int8_t reload(void);
+int8_t reload(uint8_t loaderID);
 void reload_manual(uint8_t mech_no, uint8_t dir);
 int8_t moveLoader(uint8_t i,uint8_t startColor,uint8_t dir);
 void checkForSafetyTrigger(uint8_t mech_no,uint8_t dir);

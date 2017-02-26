@@ -9,7 +9,7 @@
 #include "controlmath.h"
 
 pthread_t PS2thread;
-int x = 128, y = 128;
+int x = 128, y = 128, prev_dir = 1;
 int rx= 128, ry=128;
 bool ps2StatusInterruptEnabled = false;
 
@@ -225,6 +225,19 @@ int ps2_getX() {
 int ps2_getY() {
 	return y;
 }
+
+int ps2_getY_dir() {
+	if(y > 128) {
+		prev_dir = -1;
+		return -1;
+	} else if (y < 128) {
+		prev_dir = 1;
+		return 1;
+	} else {
+		return prev_dir;
+	}
+}
+
 int ps2_getRY() {
 	return ry;
 }

@@ -51,7 +51,7 @@ long int GetTickDiff(int wheel)
 	if(wheel==A)
 	{
 		count[A]= encoderA->value;
-		tickDiff= count[A]-prev[A];
+		tickDiff= (count[A]-prev[A]);
 		prev[A]=count[A];
 		return tickDiff;
 	}

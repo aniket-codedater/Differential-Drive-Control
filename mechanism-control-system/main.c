@@ -29,6 +29,7 @@ SET_VALUE GET_PARAM;
 int POLE;
 bool loaderChange = false;
 bool loadComplete = true;
+uint8_t currLoaderID = loader2;
 
 //EEPROM
 extern void EEPROM_init();
@@ -131,7 +132,8 @@ void reset(void) {
     //load.h variables
     loadComplete = true;
     reload_in_progress = 0;
-    no_of_discs_loaded = 0;
+    no_of_discs_loaded[loader1] = 0;
+    no_of_discs_loaded[loader2] = 0;
     system_going_0_from_top = 0;
 
     //init reset
@@ -187,20 +189,25 @@ int main() {
 	            Lcd_newLine();
 	            Lcd_Print("TA %f ",throw_angle);
 	        }
-            SysCtlDelay(5000000);
+            SysCtlDelay(2500000);
+            Lcd_clearScreen();
+            Lcd_Print("LOADER %d ",currLoaderID);
 	    }
 	    else{
+	        if(no_of_discs_loaded[currLoaderID] > MAX_LOAD_DISK - 1) {
+                if(currLoaderID == loader1) {
+                    currLoaderID = loader2;
+                } else {
+                    currLoaderID = loader1;
+                }
+            }
 	        Lcd_clearScreen();
-            Lcd_Print("RELOAD : %d",no_of_discs_loaded);
+            Lcd_Print("RELOAD : %d of %d",no_of_discs_loaded[currLoaderID],currLoaderID);
             memPlaneAngle = planeAngle;
             setPlaneAngle(0);
-            int8_t diskCheck = reload();
-            if(diskCheck == -1) {
+            if(reload(currLoaderID) == -1) {
+                Lcd_clearScreen();
                 Lcd_Print("NO AMMO");
-            } else if(diskCheck == -2) {
-                if(loaderChange == false) {
-                    loaderChange = true;
-                }
             }
             loadEnable = false;
             loadComplete = true;
@@ -360,6 +367,14 @@ void UARTIntHandler(void) {
                 Lcd_Print("LAODER 2 DOWN");
                 SysCtlDelay(2500000);
                 break;
+            case 0b00100000:
+                if(currLoaderID == loader1) {
+                    currLoaderID = loader2;
+                } else {
+                    currLoaderID = loader1;
+                }
+                Lcd_clearScreen();
+                Lcd_Print("LAODER CHANGED TO %d",currLoaderID);
             }
 	}
 }
