@@ -4,7 +4,7 @@
  *  Created on: Dec 15, 2016
  *      Author: Aniket
  */
-#define LOADING 0
+#define LOADING 1
 #include "shoot.h"
 #include <math.h>
 
@@ -77,13 +77,13 @@ void shootDisc(bool shootState) {
             shootComplete = 0;
             setPWM(minPWM_throw,throw_motor);
         } else {
-            if(currLoaderID == loader1) {
+            if(currLoaderID == loader2) {
 #if LOADING == 0
                 shootComplete = moveThrower(des_throw_counter);
 #elif LOADING == 1
                 shootComplete = moveThrower(loadPoint());
 #endif
-            } else if(currLoaderID == loader2){
+            } else if(currLoaderID == loader1){
 #if LOADING == 0
                 shootComplete = moveThrower(des_throw_counter);
 #elif LOADING == 1
@@ -98,13 +98,13 @@ void shootDisc(bool shootState) {
         if(loadComplete == true) {
             moveThrower(des_throw_counter);
         } else {
-            if(currLoaderID == loader1) {
+            if(currLoaderID == loader2) {
 #if LOADING == 0
                 moveThrower(des_throw_counter);
 #elif LOADING == 1
                 moveThrower(loadPoint());
 #endif
-            } else if(currLoaderID == loader2){
+            } else if(currLoaderID == loader1){
 #if LOADING == 0
                 moveThrower(des_throw_counter);
 #elif LOADING == 1

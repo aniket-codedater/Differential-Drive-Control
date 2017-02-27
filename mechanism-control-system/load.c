@@ -101,7 +101,7 @@ int8_t moveLoader(uint8_t i,uint8_t startColor,uint8_t dir) {
 	while(transition_color == -1) {
 		transition_color = IRstateConfidenceCheck(i);
 	}
-	while((transition_color != stopColor)) {
+	while((transition_color != stopColor) && loadEnable == true) {
 		transition_color = -1;
 		while(transition_color == -1) {
 			transition_color = IRstateConfidenceCheck(i);

@@ -6,7 +6,7 @@ int desiredJunction = 0;
 int lastJunction = 0;
 bool prevForward = true;
 bool forward = true, reverse = false;
-float HEIGHT_PARAM[7] = {69.0,12.0,41.0,69.0,41.0,12.0,69.0};
+float HEIGHT_PARAM[7] = {63.0,15.0,25.0,72.0,25.0,15.0,69.0};
 
 void resetAutomation() {
 	odometryEnable = false;

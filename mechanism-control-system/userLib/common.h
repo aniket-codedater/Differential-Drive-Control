@@ -32,10 +32,10 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 /* Throwing macros*/
 #define SYSCTLPERIPH_THROW_MOTOR		 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA)
 #define THROW_MOTOR_PORT 					GPIO_PORTA_BASE
-#define TM1 								GPIO_PIN_6
-#define TM2 								GPIO_PIN_5
-#define TM1_MASK 							0b01000000
-#define TM2_MASK 							0b00100000
+#define TM1 								GPIO_PIN_7
+#define TM2 								GPIO_PIN_6
+#define TM1_MASK 							0b10000000
+#define TM2_MASK 							0b01000000
 #define SYSCTLPERIPH_THROW_ENC				SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF)
 #define THROW_ENCODER_PORT					GPIO_PORTF_BASE
 #define THROW_ENCODER_CHANNELA				GPIO_PIN_0

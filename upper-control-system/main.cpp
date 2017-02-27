@@ -248,7 +248,9 @@ struct unicycleState getDesiredUnicycleState_line(void) {
 	struct unicycleState desiredState;
 	float vy, vx;
 	lineFeedback();
+#if PRINT == 1
 	printf("LineSensor : F B : %f %f; \n",lsF_error,lsB_error);
+#endif
 	desiredState.vx = 0;
 	if(getJunctionAutomation() == true) {
 		printf("Junction Automation :: ");
@@ -324,12 +326,6 @@ struct unicycleState getDesiredUnicycleState_mode() {
 			    printf("\n>>>>>>>>>>>>>Line mode::<<<<<<<<<<<<<<\n");
 #endif
 			    return getDesiredUnicycleState_line();
-                break;
-            case auto_enum: 
-#if PRINT==1
-			    printf("\n>>>>>>>>>>>>>Auto mode::<<<<<<<<<<<<<<\n");
-#endif
-			    return getDesiredUnicycleState_auto();
                 break;
             case imu_enum: 
 #if PRINT==1

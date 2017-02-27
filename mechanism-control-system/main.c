@@ -1,4 +1,4 @@
-#define ANGLE_RESET_ROUTINE 0
+#define ANGLE_RESET 0
 
 #include "userLib/common.h"
 #include "userLib/init.h"
@@ -15,7 +15,6 @@ int32_t maxPWM_throw = 10,maxPWM = 0;							//Random maxPWM value
 int32_t maxPWM_angle = 10;							//Random maxPWM value
 int32_t minPWM_throw = 0;						//Minimum PWM value for the throw motor to move
 int32_t minPWM_angle = 0;						//Minimum PWM value for the angle motor to move
-uint32_t EEPROM_planeAngle;
 int memPlaneAngle = 0;
 
 volatile float shootPercent = 1.0;
@@ -30,10 +29,6 @@ int POLE;
 bool loaderChange = false;
 bool loadComplete = true;
 uint8_t currLoaderID = loader2;
-
-//EEPROM
-extern void EEPROM_init();
-extern void EEPROM_send(uint32_t pui32Data);
 
 //Interrupt routines prototype
 void Timer0IntHandler(void);
@@ -62,11 +57,6 @@ int setPlaneAngle(int i) {
         planeAngle = -MAX_ANGLE;
     }
     cmd_angle(planeAngle);
-    EEPROM_planeAngle = planeAngle;
-    if(planeAngle < 0){
-        EEPROM_planeAngle = (planeAngle * (-1)) + MAX_ANGLE;
-    }
-    EEPROM_send(EEPROM_planeAngle);
     return planeAngle;
 }
 
@@ -82,14 +72,6 @@ void setThrowerPositionAbsolute(long int i) {
 long int getThrowerPosition(void) {
     return QEIPositionGet(QEI0_BASE);
 }
-//EEPROM FUNCTIONS
-void EEPROM_init(){
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_EEPROM0);
-    EEPROMInit();
-}
-void EEPROM_send(uint32_t pui32Data){
-    EEPROMProgram(&pui32Data, 0x0, sizeof(pui32Data));
-}
 
 //Debugging variables
 int printer;
@@ -103,7 +85,6 @@ void reset(void) {
     minPWM_throw = maxPWM/40.0;
     minPWM_angle = maxPWM/20.0;
     maxPWM_throw = maxPWM * shootPercent;
-    EEPROM_send(0);
     setShootPercent(1);
     shoot = 0;
     load = 0;
@@ -144,7 +125,6 @@ void reset(void) {
 int main() {
 	SysCtlClockSet(SYSCTL_SYSDIV_5|SYSCTL_USE_PLL|SYSCTL_XTAL_16MHZ|SYSCTL_OSC_MAIN);
 	Lcd_16x2_595_init();
-	EEPROM_init();
 	initPIDController(throw_motor,0.001,0.0,0.0); //0.04
 	initPIDController(angle_motor,9.0,0.0,0.0);
 	IntMasterEnable();
@@ -166,13 +146,6 @@ int main() {
 	qeiInit();
 	encoderInit(ISR_ANGLE,angle_motor);
 	loadInit();
-    int8_t resetPlaneAngle = EEPROM_planeAngle;
-	if(resetPlaneAngle > MAX_ANGLE) {
-	    resetPlaneAngle =  MAX_ANGLE - resetPlaneAngle;
-	}
-    angle_counter = convertPlaneAngleToTicks(resetPlaneAngle);
-	planeAngle = setPlaneAngle(planeAngle);
-    EEPROM_send(0);
     uart5Init();
 	timerInit();
 	timerEnable = true;
@@ -189,9 +162,10 @@ int main() {
 	            Lcd_newLine();
 	            Lcd_Print("TA %f ",throw_angle);
 	        }
-            SysCtlDelay(2500000);
+            SysCtlDelay(10000000);
             Lcd_clearScreen();
-            Lcd_Print("LOADER %d ",currLoaderID);
+            Lcd_Print("LOADER %d : %d ",currLoaderID, no_of_discs_loaded[currLoaderID]);
+            SysCtlDelay(5000000);
 	    }
 	    else{
 	        if(no_of_discs_loaded[currLoaderID] > MAX_LOAD_DISK - 1) {
@@ -214,6 +188,7 @@ int main() {
             while(moveThrower(des_throw_counter)!=1);
             planeAngle = setPlaneAngle(memPlaneAngle);
 	    }
+/*
         UARTCharPut(UART0_BASE,';');
         UART_OutDec(planeAngle,0);
         UARTCharPut(UART0_BASE,';');
@@ -223,6 +198,7 @@ int main() {
         UARTCharPut(UART0_BASE,';');
         UART_OutDec(throw_angle,0);
 		UART_TransmitString("\r\n",0);
+*/
 	}
 }
 
@@ -340,6 +316,7 @@ void UARTIntHandler(void) {
                 Lcd_Print("RESET");
                 SysCtlDelay(2500000);
                 Lcd_clearScreen();
+                SysCtlDelay(2500000);
                 Lcd_Print("RESET");
                 SysCtlDelay(2500000);
                 break;
@@ -375,6 +352,7 @@ void UARTIntHandler(void) {
                 }
                 Lcd_clearScreen();
                 Lcd_Print("LAODER CHANGED TO %d",currLoaderID);
+                SysCtlDelay(2500000);
             }
 	}
 }

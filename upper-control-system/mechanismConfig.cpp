@@ -10,7 +10,7 @@ int atmegaPort;
 int printer_shoot = 0,printer_load = 0,printer_planeAngle = 0,printer_dataFrame = 0;
 
 void initMechanism() {
-	atmegaPort = serialOpen(USBTTLPORT,38400);
+	atmegaPort = serialOpen(USBTTLPORT,9600);
 }
 void endMechanism() {
 	serialClose(atmegaPort);

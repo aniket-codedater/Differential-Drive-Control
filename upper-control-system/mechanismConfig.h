@@ -2,7 +2,7 @@
 #define MECHANISM_CONFIG_H
 
 #include "ps2_2k17.h"
-#define USBTTLPORT "/dev/ttyUSB0"
+#define USBTTLPORT "/dev/rfcomm1"
 
 extern int printer_shoot,printer_load,printer_planeAngle,printer_dataFrame;
 
