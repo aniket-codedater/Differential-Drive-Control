@@ -9,10 +9,13 @@
 #define SHOOT_H_
 #include "userLib/common.h"
 #include "userLib/pidController.h"
-//6785 3
+
 #define TICK_PER_REV                    49000.0
 #define TICKS_PER_REVOLUTION_PER_DEGREE 136.11     //Green encoder ticks 4000 for 360degree
-#define THROW_REVOLUTION                4.0
+#define LOAD_ANGLE_COUNTER1             LOAD_ANGLE1*TICKS_PER_REVOLUTION_PER_DEGREE
+#define LOAD_ANGLE_COUNTER2             LOAD_ANGLE2*TICKS_PER_REVOLUTION_PER_DEGREE
+
+#define THROW_REVOLUTION                3.0
 #define STEP                            TICK_PER_REV*THROW_REVOLUTION
 #define SHOOT_DISC                      128
 #define LOAD_DISC                       64
@@ -28,6 +31,8 @@ extern float throw_angle;
 extern bool loadComplete;
 extern uint8_t currLoaderID;
 extern int semiCircle;
+extern long int loadPointHolder;
+extern bool shootEnable;
 long int loadPoint(void);
 int8_t moveThrower(long int desiredCount);
 void shootDisc(bool shootState);

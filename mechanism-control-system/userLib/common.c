@@ -1,6 +1,5 @@
 #include "common.h"
 
-extern int printer;
 void setPWM(float pwm,int i) {
 	if(i == throw_motor) {
 		if(pwm > maxPWM_throw) {
@@ -8,25 +7,21 @@ void setPWM(float pwm,int i) {
 		} else if(pwm < -maxPWM_throw) {
 			pwm = -maxPWM_throw;
 		}
-		printer = pwm;
 		if(pwm > 0) {
 			if(pwm < minPWM_throw) {
 				pwm = minPWM_throw;
 			}
-	        printer = pwm;
-			GPIOPinWrite(THROW_MOTOR_PORT,TM1|TM2,TM1_MASK);
+	     	GPIOPinWrite(THROW_MOTOR_PORT,TM1|TM2,TM1_MASK);
 			PWMPulseWidthSet(PWM1_BASE, PWM_OUT_3, pwm);
 		} else if(pwm < 0) {
 			if(pwm > -minPWM_throw) {
 				pwm = -minPWM_throw;
 			}
-	        printer = pwm;
-			GPIOPinWrite(THROW_MOTOR_PORT,TM1|TM2,TM2_MASK);
+	     	GPIOPinWrite(THROW_MOTOR_PORT,TM1|TM2,TM2_MASK);
 			PWMPulseWidthSet(PWM1_BASE, PWM_OUT_3, -pwm);
 		} else {
 			PWMPulseWidthSet(PWM1_BASE, PWM_OUT_3, 1);
 			GPIOPinWrite(THROW_MOTOR_PORT,TM1|TM2,0);
-			printer = 0;
 		}
 	} else if(i == angle_motor) {
 		if(pwm > maxPWM_angle) {

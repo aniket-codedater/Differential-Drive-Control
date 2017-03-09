@@ -18,7 +18,7 @@ int32_t minPWM_angle = 0;						//Minimum PWM value for the angle motor to move
 int memPlaneAngle = 0;
 
 volatile float shootPercent = 1.0;
-volatile int shoot = 0,load = 0,planeAngle = 0;			//UART packet value holders of the mechanism
+volatile int shoot = 0,load = 0,planeAngle = 0;			//UART packet value holders of the mechanism.
 volatile int8_t enablePositionChange = 0;
 bool loadEnable = false; 
 bool autonomous_mode = false;
@@ -28,7 +28,7 @@ SET_VALUE GET_PARAM;
 int POLE;
 bool loaderChange = false;
 bool loadComplete = true;
-uint8_t currLoaderID = loader2;
+uint8_t currLoaderID = loader1;
 
 //Interrupt routines prototype
 void Timer0IntHandler(void);
@@ -62,6 +62,7 @@ int setPlaneAngle(int i) {
 
 void setThrowerPositionRelative(long int i) {
     des_throw_counter = throw_counter + i;
+    updateFirstStage();
 }
 
 void setThrowerPositionAbsolute(long int i) {
@@ -73,53 +74,10 @@ long int getThrowerPosition(void) {
     return QEIPositionGet(QEI0_BASE);
 }
 
-//Debugging variables
-int printer;
-long int printer_step,printer_first,printer_second;
-
-
 void reset(void) {
-    timerEnable = false;
-    maxPWM_throw = maxPWM;
-    maxPWM_angle = maxPWM;
-    minPWM_throw = maxPWM/40.0;
-    minPWM_angle = maxPWM/20.0;
-    maxPWM_throw = maxPWM * shootPercent;
-    setShootPercent(1);
-    shoot = 0;
-    load = 0;
-    planeAngle = 0;
-    enablePositionChange = 0;
     loadEnable = false;
-    autonomous_mode = false;
-    reset_mode = false;
-    loaderChange = false;
-
-    //shoot.h variables
-    shootComplete = 1;
-    triggered = 0;
-    des_throw_counter = STEP;
-    FIRST_STAGE = STEP/THROW_REVOLUTION;
-    SECOND_STAGE = STEP/THROW_REVOLUTION * 1;
-    throw_counter = STEP;
-    steady = false;
-    throw_angle = 0;
-    memPlaneAngle = 0;
-
-    //angle.h variables
-    angle_counter = 0;
-    des_angle_counter = 0;
-
-    //load.h variables
-    loadComplete = true;
-    reload_in_progress = 0;
-    no_of_discs_loaded[loader1] = 0;
-    no_of_discs_loaded[loader2] = 0;
-    system_going_0_from_top = 0;
-
-    //init reset
-    QEIPositionSet(QEI0_BASE, STEP);
-    timerEnable = true;
+    Lcd_16x2_595_init();
+    Lcd_clearScreen();
 }
 
 int main() {
@@ -137,7 +95,7 @@ int main() {
 	maxPWM = SysCtlClockGet()/(PWMfrequency*8);
 	maxPWM_throw = maxPWM;
 	maxPWM_angle = maxPWM;
-	minPWM_throw = maxPWM/40.0;             //16.0
+	minPWM_throw = maxPWM/20.0;             //16.0
 	minPWM_angle = maxPWM/20.0;
 	maxPWM_throw = maxPWM * shootPercent;	// 0.7 times for middle pole at 90 degree
 	pwmInit();
@@ -151,50 +109,43 @@ int main() {
 	timerEnable = true;
 	int semiCircle = convertThrowAngleToTicks(180);
 	while(1) {
-	    if(loadEnable == false){
-	        Lcd_clearScreen();
-	        if(shootComplete == 0){
-	            Lcd_Print("SHOOT");
-	        }
-	        else{
-	            Lcd_Print("PA %d ",planeAngle);
-	            Lcd_Print("RPM %f ",shootPercent*100);
-	            Lcd_newLine();
-	            Lcd_Print("TA %f ",throw_angle);
-	        }
-            SysCtlDelay(10000000);
+        Lcd_clearScreen();
+        Lcd_Print("PA %d ",planeAngle);
+        Lcd_Print("RPM %f ",shootPercent*100);
+        Lcd_newLine();
+        Lcd_Print("TA %f ",throw_angle);
+        Lcd_Print("L%d ",currLoaderID);
+        SysCtlDelay(5000000);
+	    if(loadEnable == true){
             Lcd_clearScreen();
-            Lcd_Print("LOADER %d : %d ",currLoaderID, no_of_discs_loaded[currLoaderID]);
-            SysCtlDelay(5000000);
-	    }
-	    else{
-	        if(no_of_discs_loaded[currLoaderID] > MAX_LOAD_DISK - 1) {
-                if(currLoaderID == loader1) {
-                    currLoaderID = loader2;
-                } else {
-                    currLoaderID = loader1;
-                }
-            }
-	        Lcd_clearScreen();
-            Lcd_Print("RELOAD : %d of %d",no_of_discs_loaded[currLoaderID],currLoaderID);
+            Lcd_Print("RELOAD");
             memPlaneAngle = planeAngle;
-            setPlaneAngle(0);
-            if(reload(currLoaderID) == -1) {
-                Lcd_clearScreen();
-                Lcd_Print("NO AMMO");
+            if(currLoaderID == loader1) {
+                setPlaneAngle(5);
+            } else if(currLoaderID == loader2) {
+                setPlaneAngle(0);
             }
+            reload(currLoaderID);
             loadEnable = false;
             loadComplete = true;
             while(moveThrower(des_throw_counter)!=1);
             planeAngle = setPlaneAngle(memPlaneAngle);
+            SysCtlDelay(5000000);
+	    }
+	    else{
+            if(shootComplete == 0){
+                Lcd_clearScreen();
+                Lcd_Print("SHOOT");
+                SysCtlDelay(5000000);
+            }
 	    }
 /*
         UARTCharPut(UART0_BASE,';');
-        UART_OutDec(planeAngle,0);
+        UART_OutDec(throw_counter,0);
         UARTCharPut(UART0_BASE,';');
-        UART_OutDec(memPlaneAngle,0);
+        UART_OutDec(convertThrowAngleToTicks(LOAD_ANGLE1),0);
         UARTCharPut(UART0_BASE,';');
-        UART_OutDec(shootPercent*100,0);
+        UART_OutDec(loadPointHolder,0);
         UARTCharPut(UART0_BASE,';');
         UART_OutDec(throw_angle,0);
 		UART_TransmitString("\r\n",0);

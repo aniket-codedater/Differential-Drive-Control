@@ -27,7 +27,7 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 
 #define PIDfrequency 						100
 #define PWMfrequency 						2500
-#define MAX_LOAD_DISK 						11
+#define MAX_LOAD_DISK 						100
 #define LOAD_POSITION_CONFIDENCE			1000
 /* Throwing macros*/
 #define SYSCTLPERIPH_THROW_MOTOR		 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA)
@@ -58,17 +58,19 @@ extern int32_t maxPWM_angle,maxPWM_throw, minPWM_throw,minPWM_angle;
 //PWM pin for angle motor  PD0
 
 /* Loading macros */
+#define LOAD_ANGLE1                         3
+#define LOAD_ANGLE2                         183
 /* Loading motor definitions */
 #define SYSCTLPERIPH_LOAD_MOTOR1 			SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA)
 #define SYSCTLPERIPH_LOAD_MOTOR2 			SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC)
 #define LOAD_MOTOR1_PORT 					GPIO_PORTA_BASE
 #define LOAD_MOTOR2_PORT 					GPIO_PORTC_BASE
-#define LM11 								GPIO_PIN_4
-#define LM12 								GPIO_PIN_3
+#define LM11 								GPIO_PIN_3
+#define LM12 								GPIO_PIN_4
 #define LM21 								GPIO_PIN_6
 #define LM22 								GPIO_PIN_5
-#define LM11_MASK 							4
-#define LM12_MASK 							3
+#define LM11_MASK 							3
+#define LM12_MASK 							4
 #define LM21_MASK 							6
 #define LM22_MASK 							5
 /* IR definitions */

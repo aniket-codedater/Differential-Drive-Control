@@ -7,8 +7,8 @@ volatile uint8_t system_going_0_from_top = 0;
 
 bool limitFlag[2][2] = {{false,false},{false,false}};
 int8_t servoID[2];
-int whiteConfidenceLevel[2] = {100,0};
-int blackConfidenceLevel[2] = {0,100};
+int whiteConfidenceLevel[2] = {100,100};
+int blackConfidenceLevel[2] = {100,100};
 void resetLoad(void) {
 	reload_in_progress = 0;
 	no_of_discs_loaded[loader1] = 0;
@@ -56,7 +56,7 @@ void loadInit(void) {
 	//gpio for solenoid valve
 	SYSCTLPERIPH_SOLENOID;
 	GPIOPinTypeGPIOOutput(SOLENOID_PORT,SOLENOID_PIN1|SOLENOID_PIN2);
-	GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN1|SOLENOID_PIN2,(1<<SOLENOID_PIN_MASK2));
+	GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN1|SOLENOID_PIN2,(1<<SOLENOID_PIN_MASK1)|(1<<SOLENOID_PIN_MASK2));
 	//limit switch
 	/*SYSCTLPERIPH_LIMIT1_SWITCH;//limit switch for mech 1
 	GPIOPinTypeGPIOInput(LIMIT1_SWITCH_PORT, LIMIT1_SWITCH_PIN1|LIMIT1_SWITCH_PIN2);
@@ -203,9 +203,9 @@ int8_t reload(uint8_t loaderID)
 {
     if(loadEnable == true) {
         reload_in_progress = 1;
-        GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN1,(1<<SOLENOID_PIN_MASK1));                         //Piston up
+        GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN1,0);                         //Piston up
         GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN2,0);                         //Piston up
-
+        SysCtlDelay(20000000);
         if(no_of_discs_loaded[loaderID] > MAX_LOAD_DISK - 1) {
            return -1;
         } else {
@@ -218,13 +218,13 @@ int8_t reload(uint8_t loaderID)
             }
             no_of_discs_loaded[loaderID]++;
             moveServo(SERVO_ANGLE2,servoID[loaderID]);                                  //Servo hit
-            SysCtlDelay(SERVO_DELAY/2);
+            SysCtlDelay(SERVO_DELAY/6);
             moveServo(SERVO_ANGLE1,servoID[loaderID]);
-            SysCtlDelay(SERVO_DELAY);
+            SysCtlDelay(SERVO_DELAY/2);
             moveServo(SERVO_ANGLE2,servoID[loaderID]);
             SysCtlDelay(SERVO_DELAY/8);
 
-            GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN1,0);                         //Piston down
+            GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN1,(1<<SOLENOID_PIN_MASK1));                         //Piston down
             GPIOPinWrite(SOLENOID_PORT,SOLENOID_PIN2,(1<<SOLENOID_PIN_MASK2));                         //Piston down
 
             reload_in_progress = 0;
